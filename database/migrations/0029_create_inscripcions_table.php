@@ -19,7 +19,7 @@ return new class extends Migration
                   ->constrained('postulantes', 'idPost')
                   ->onDelete('cascade');
             $table->foreignId('idGestion')
-                  ->constrained('gestiones', 'idGestion')
+                  ->constrained('gestions', 'idGestion')
                   ->onDelete('cascade');
             $table->timestamps();
         });

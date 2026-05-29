@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id('idEx_materia');
             $table->decimal('puntaje', 5, 2)->nullable();
             $table->foreignId('idExamen')
-                  ->constrained('examenes', 'idExamen')
+                  ->constrained('examens', 'idExamen')
                   ->onDelete('cascade');
             $table->foreignId('idMateria')
                   ->constrained('materias', 'idMateria')

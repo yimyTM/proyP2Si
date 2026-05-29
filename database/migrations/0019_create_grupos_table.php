@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id('codigoG');
             $table->integer('capacidad');
             $table->foreignId('codeModalidad')
-                  ->constrained('modalidades', 'codeModalidad')
+                  ->constrained('modalidads', 'codeModalidad')
                   ->onDelete('cascade');
             $table->foreignId('idTurno')
                   ->constrained('turnos', 'idTurno')

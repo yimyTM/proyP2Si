@@ -3,63 +3,87 @@
 namespace App\Http\Controllers;
 
 use App\Models\requisito;
+use App\Services\BitacoraService;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\View\View;
 
 class RequisitoController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
+    public function index(): View
     {
-        //
+        $requisitos = requisito::withCount(['requisitoPostulantes', 'requisitoDocentes'])
+            ->orderBy('tipo')
+            ->orderBy('nombre')
+            ->get();
+
+        return view('admin.requisitos.index', compact('requisitos'));
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
+    public function store(Request $request): RedirectResponse
     {
-        //
+        $data = $request->validate([
+            'nombre'      => ['required', 'string', 'max:100', 'unique:requisitos,nombre'],
+            'tipo'        => ['required', 'in:P,D'],
+            'obligatorio' => ['boolean'],
+        ], [
+            'nombre.required' => 'El nombre del requisito es obligatorio.',
+            'nombre.unique'   => 'Ya existe un requisito con ese nombre.',
+            'tipo.required'   => 'Selecciona el tipo de requisito.',
+            'tipo.in'         => 'El tipo debe ser Postulante (P) o Docente (D).',
+        ]);
+
+        $data['obligatorio'] = $request->boolean('obligatorio');
+
+        $req = requisito::create($data);
+
+        BitacoraService::registrar("Requisito creado: {$req->nombre} (tipo {$req->tipo}).");
+
+        return back()->with('success', "Requisito «{$req->nombre}» creado correctamente.");
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
+    public function update(Request $request, requisito $requisito): RedirectResponse
     {
-        //
+        $data = $request->validate([
+            'nombre'      => [
+                'required', 'string', 'max:100',
+                "unique:requisitos,nombre,{$requisito->idReq},idReq",
+            ],
+            'tipo'        => ['required', 'in:P,D'],
+            'obligatorio' => ['boolean'],
+        ], [
+            'nombre.required' => 'El nombre del requisito es obligatorio.',
+            'nombre.unique'   => 'Ya existe otro requisito con ese nombre.',
+            'tipo.required'   => 'Selecciona el tipo de requisito.',
+            'tipo.in'         => 'El tipo debe ser Postulante (P) o Docente (D).',
+        ]);
+
+        $data['obligatorio'] = $request->boolean('obligatorio');
+
+        $anterior = $requisito->nombre;
+        $requisito->update($data);
+
+        BitacoraService::registrar("Requisito actualizado: «{$anterior}» → «{$requisito->nombre}».");
+
+        return back()->with('success', 'Requisito actualizado correctamente.');
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(requisito $requisito)
+    public function destroy(requisito $requisito): RedirectResponse
     {
-        //
-    }
+        $usos = $requisito->requisitoPostulantes()->count()
+              + $requisito->requisitoDocentes()->count();
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(requisito $requisito)
-    {
-        //
-    }
+        if ($usos > 0) {
+            return back()->with('error',
+                "No se puede eliminar «{$requisito->nombre}» porque está asignado a {$usos} registro(s)."
+            );
+        }
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, requisito $requisito)
-    {
-        //
-    }
+        $nombre = $requisito->nombre;
+        $requisito->delete();
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(requisito $requisito)
-    {
-        //
+        BitacoraService::registrar("Requisito eliminado: «{$nombre}».");
+
+        return back()->with('success', "Requisito «{$nombre}» eliminado.");
     }
 }

@@ -6,12 +6,10 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
-    public function up(): void
+
+public function up(): void
     {
-         Schema::create('form_docente', function (Blueprint $table) {
+        Schema::create('form_docente', function (Blueprint $table) {
             $table->foreignId('codigoDoc')
                   ->constrained('docentes', 'codigoDoc')
                   ->onDelete('cascade');
@@ -22,13 +20,9 @@ return new class extends Migration
             $table->timestamps();
         });
     }
-    }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
-        Schema::dropIfExists('form__docentes');
+        Schema::dropIfExists('form_docente');
     }
 };

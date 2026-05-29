@@ -23,7 +23,7 @@ return new class extends Migration
             $table->string('contrasena', 255)->nullable();
             $table->foreignId('idUsuario')
                   ->nullable()
-                  ->constrained('usuarios', 'idUsuario')
+                  ->constrained('users', 'idUsuario')
                   ->onDelete('set null');
             $table->timestamps();
         });

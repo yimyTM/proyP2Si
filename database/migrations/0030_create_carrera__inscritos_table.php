@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id('idCarreraInscrito');
             $table->integer('prioridad')->nullable();
             $table->foreignId('idInscripcion')
-                  ->constrained('inscripciones', 'idInscripcion')
+                  ->constrained('inscripcions', 'idInscripcion')
                   ->onDelete('cascade');
             $table->foreignId('codCarrera')
                   ->constrained('carreras', 'codCarrera')

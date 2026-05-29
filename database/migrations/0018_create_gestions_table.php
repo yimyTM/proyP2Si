@@ -15,8 +15,7 @@ return new class extends Migration
             $table->id('idGestion');
             $table->date('fecha_ini');
             $table->date('fecha_fin');
-            $table->string('estado', 20)->default('activa');
-            $table->integer('capacidad');
+            $table->string('estado', 20)->default('Cerrada');
             $table->timestamps();
         });
     }

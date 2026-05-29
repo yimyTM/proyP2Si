@@ -1,39 +1,30 @@
 <?php
 
+/*
+|--------------------------------------------------------------------------
+| Configuración de correo – Recuperación de contraseña
+|--------------------------------------------------------------------------
+|
+| Las credenciales SMTP van en el archivo .env (no las subas a Git).
+| Copia .env.example y descomenta la opción que uses (Gmail, Outlook, Mailtrap).
+|
+| Desarrollo local sin SMTP:
+|   MAIL_MAILER=log  →  el enlace de recuperación se guarda en storage/logs/laravel.log
+|
+| Producción:
+|   MAIL_MAILER=smtp + MAIL_HOST, MAIL_PORT, MAIL_USERNAME, MAIL_PASSWORD
+|
+*/
+
 return [
 
     /*
     |--------------------------------------------------------------------------
     | Default Mailer
     |--------------------------------------------------------------------------
-    |
-    | This option controls the default mailer that is used to send all email
-    | messages unless another mailer is explicitly specified when sending
-    | the message. All additional mailers can be configured within the
-    | "mailers" array. Examples of each type of mailer are provided.
-    |
     */
 
     'default' => env('MAIL_MAILER', 'log'),
-
-    /*
-    |--------------------------------------------------------------------------
-    | Mailer Configurations
-    |--------------------------------------------------------------------------
-    |
-    | Here you may configure all of the mailers used by your application plus
-    | their respective settings. Several examples have been configured for
-    | you and you are free to add your own as your application requires.
-    |
-    | Laravel supports a variety of mail "transport" drivers that can be used
-    | when delivering an email. You may specify which one you're using for
-    | your mailers below. You may also add additional mailers if needed.
-    |
-    | Supported: "smtp", "sendmail", "mailgun", "ses", "ses-v2",
-    |            "postmark", "resend", "log", "array",
-    |            "failover", "roundrobin"
-    |
-    */
 
     'mailers' => [
 

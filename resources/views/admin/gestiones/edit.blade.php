@@ -1,0 +1,31 @@
+@extends('layouts.app')
+
+@section('title', 'Editar Gestión')
+@section('page-title', 'Editar Gestión #{{ $gestion->idGestion }}')
+
+@section('content')
+<div class="max-w-2xl space-y-4">
+    <a href="{{ route('admin.gestiones.carreras.index', $gestion) }}"
+       class="inline-flex text-sm text-blue-600 hover:underline">
+        → Configurar cupos por carrera
+    </a>
+    <div class="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+        <form method="POST" action="{{ route('admin.gestiones.update', $gestion) }}" class="space-y-4">
+            @csrf @method('PUT')
+            @include('admin.gestiones._form', ['gestion' => $gestion])
+
+            <div class="flex gap-3 pt-2">
+                <button type="submit"
+                        class="px-6 py-2 rounded-lg text-white text-sm font-medium transition hover:opacity-90"
+                        style="background-color: #283342;">
+                    Guardar cambios
+                </button>
+                <a href="{{ route('admin.gestiones.index') }}"
+                   class="px-6 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium transition">
+                    Cancelar
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+@endsection

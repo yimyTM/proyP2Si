@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id('codCarrera');
             $table->string('nombre', 100);
             $table->foreignId('codeModalidad')
-                  ->constrained('modalidades', 'codeModalidad')
+                  ->constrained('modalidads', 'codeModalidad')
                   ->onDelete('restrict');
             $table->timestamps();
         });

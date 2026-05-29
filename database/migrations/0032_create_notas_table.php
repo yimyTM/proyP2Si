@@ -15,10 +15,10 @@ return new class extends Migration
             $table->id('idCalif');
             $table->decimal('calificacion', 5, 2);
             $table->foreignId('idInscripcion')
-                  ->constrained('inscripciones', 'idInscripcion')
+                  ->constrained('inscripcions', 'idInscripcion')
                   ->onDelete('cascade');
             $table->foreignId('idEx_materia')
-                  ->constrained('exam_materia', 'idEx_materia')
+                  ->constrained('exam_materias', 'idEx_materia')
                   ->onDelete('cascade');
             $table->unique(['idInscripcion', 'idEx_materia']);
             $table->timestamps();
