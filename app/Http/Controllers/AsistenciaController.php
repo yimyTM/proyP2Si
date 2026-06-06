@@ -62,15 +62,6 @@ class AsistenciaController extends Controller
         return view('docente.asistencia.tomar', compact('grupo', 'postulantes', 'docente', 'sesionesAnteriores'));
     }
 
-    /**
-     * Guarda la sesión de asistencia y el detalle por postulante.
-     *
-     * Estructura del formulario:
-     *   fecha          : date
-     *   observacion    : text (opcional)
-     *   codigoG        : int
-     *   asistencia[idPost] = 'presente' | 'ausente' | 'tardanza'
-     */
     public function store(Request $request): RedirectResponse
     {
         $request->validate([
@@ -116,7 +107,6 @@ class AsistenciaController extends Controller
             ->with('success', "Asistencia del {$request->fecha} guardada correctamente.");
     }
 
-    // Sin uso directo
     public function create()  {}
     public function show(Asistencia $asistencia) {}
     public function edit(Asistencia $asistencia)  {}

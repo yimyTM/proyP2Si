@@ -19,6 +19,10 @@ return new class extends Migration
             $table->string('password', 255);
             $table->rememberToken();
             $table->foreignId('idRol')->constrained('rols', 'idRol')->onDelete('cascade');
+            $table->boolean('estado')->default(true);  
+            $table->timestamp('ultimo_acceso')->nullable();        
+            $table->integer('intentos_fallidos')->default(0);      
+            $table->timestamp('bloqueado_hasta')->nullable();  
             $table->timestamps();
         });
 

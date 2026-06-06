@@ -14,6 +14,7 @@ return new class extends Migration
         Schema::create('rols', function (Blueprint $table) {
             $table->id('idRol');
             $table->string('nombre_Rol',100);
+            $table->string('descripcion', 255);
             $table->timestamps();
         });
     }
