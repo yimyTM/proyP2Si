@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('postulantes', function (Blueprint $table) {
+         Schema::create('postulantes', function (Blueprint $table) {
             $table->id('idPost');
             $table->string('nombre', 100);
             $table->string('apellidos', 100);
@@ -23,8 +23,6 @@ return new class extends Migration
             $table->date('fecha_nacimiento')->nullable();
             $table->string('ciudad', 100)->nullable();
             $table->string('colegio_procedencia', 150)->nullable();
-            $table->string('correo', 100)->nullable();
-            $table->string('contrasena', 255)->nullable();
             $table->foreignId('idUsuario')
                   ->nullable()
                   ->constrained('users', 'idUsuario')

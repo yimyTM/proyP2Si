@@ -14,8 +14,6 @@ return new class extends Migration
         Schema::create('aulas', function (Blueprint $table) {
             $table->id('idAula');
             $table->integer('capacidad');
-            $table->integer('cantSillas');
-            $table->integer('cantMesas');
             $table->timestamps();
         });
     }

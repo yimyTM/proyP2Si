@@ -17,6 +17,7 @@ return new class extends Migration
             $table->datetime('fecha');
             $table->decimal('ponderacion', 5, 2)->nullable();
             $table->integer('nroParcial')->nullable();
+            $table->foreignId('idGestion')->constrained('gestions', 'idGestion')->onDelete('cascade');
             $table->timestamps();
         });
     }

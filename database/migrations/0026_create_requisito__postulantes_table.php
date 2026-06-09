@@ -16,6 +16,7 @@ return new class extends Migration
             $table->date('fecha_entrega')->nullable();
             $table->boolean('entregado')->default(false);
             $table->boolean('validado')->default(false);
+            $table->string('ruta_archivo')->nullable()->after('validado');
             $table->foreignId('idReq')
                   ->constrained('requisitos', 'idReq')
                   ->onDelete('cascade');

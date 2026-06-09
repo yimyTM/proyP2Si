@@ -13,8 +13,8 @@ return new class extends Migration
     {
         Schema::create('horarios', function (Blueprint $table) {
             $table->id('idHorario');
-            $table->datetime('hora_ini');
-            $table->datetime('hora_fin');
+            $table->time('hora_ini');
+            $table->time('hora_fin');
             $table->string('dia', 20);
             $table->timestamps();
         });

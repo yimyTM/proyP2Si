@@ -21,6 +21,9 @@ return new class extends Migration
             $table->foreignId('idGestion')
                   ->constrained('gestions', 'idGestion')
                   ->onDelete('cascade');
+            $table->foreignId('codigoG')
+                  ->constrained('grupos', 'codigoG')
+                  ->onDelete('cascade');
             $table->timestamps();
         });
     }

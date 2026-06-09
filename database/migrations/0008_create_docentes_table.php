@@ -18,9 +18,7 @@ return new class extends Migration
             $table->string('ci', 20)->unique();
             $table->string('nroTelefono', 20)->nullable();
             $table->string('direccion', 255)->nullable();
-            $table->string('correo', 100)->nullable();
             $table->integer('carga_horaria')->nullable();
-            $table->string('contrasena', 255)->nullable();
             $table->foreignId('idUsuario')
                   ->nullable()
                   ->constrained('users', 'idUsuario')

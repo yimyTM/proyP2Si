@@ -13,8 +13,10 @@ return new class extends Migration
     {
         Schema::create('gestions', function (Blueprint $table) {
             $table->id('idGestion');
+            $table->string('nombre', 100);
             $table->date('fecha_ini');
             $table->date('fecha_fin');
+            $table->integer('capacidad_maxima')->nullable()->after('fecha_fin');
             $table->string('estado', 20)->default('Cerrada');
             $table->timestamps();
         });

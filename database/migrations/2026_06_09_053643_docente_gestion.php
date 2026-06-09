@@ -11,23 +11,25 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('docente__grupos', function (Blueprint $table) {
+        Schema::create('docente_gestion', function (Blueprint $table) {
             $table->foreignId('codigoDoc')
                   ->constrained('docentes', 'codigoDoc')
                   ->onDelete('cascade');
-            $table->foreignId('codigoG')
-                  ->constrained('grupos', 'codigoG')
+            $table->foreignId('idGestion')
+                  ->constrained('gestions', 'idGestion')
                   ->onDelete('cascade');
-            $table->primary(['codigoDoc', 'codigoG']);
-            $table->timestamps();
+            $table->date('fecha_contrato');
+            $table->string('estado', 30)->default('No Contratado');
+            $table->primary(['codigoDoc', 'idGestion']);
+            $table->timestamps(); 
         });
-    }
 
+    }
     /**
      * Reverse the migrations.
      */
     public function down(): void
     {
-        Schema::dropIfExists('docente__grupos');
+        Schema::dropIfExists('docente_gestion');
     }
 };

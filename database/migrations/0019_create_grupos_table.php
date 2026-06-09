@@ -14,11 +14,15 @@ return new class extends Migration
         Schema::create('grupos', function (Blueprint $table) {
             $table->id('codigoG');
             $table->integer('capacidad');
+            $table->string('numero_grupo', 50);
             $table->foreignId('codeModalidad')
                   ->constrained('modalidads', 'codeModalidad')
                   ->onDelete('cascade');
             $table->foreignId('idTurno')
                   ->constrained('turnos', 'idTurno')
+                  ->onDelete('cascade');
+            $table->foreignId('idGestion')
+                  ->constrained('gestions', 'idGestion')
                   ->onDelete('cascade');
             $table->timestamps();
         });

@@ -12,14 +12,23 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('materi_grupos', function (Blueprint $table) {
-            $table->foreignId('idMateria')
-                  ->constrained('materias', 'idMateria')
-                  ->onDelete('cascade');
             $table->foreignId('codigoG')
                   ->constrained('grupos', 'codigoG')
                   ->onDelete('cascade');
-            $table->primary(['idMateria', 'codigoG']);
-            $table->timestamps();
+            $table->foreignId('idMateria')
+                  ->constrained('materias', 'idMateria')
+                  ->onDelete('cascade');
+            $table->foreignId('idHorario')
+                  ->constrained('horarios', 'idHorario')
+                  ->onDelete('cascade');
+            $table->foreignId('idAula')
+                  ->constrained('aulas', 'idAula')
+                  ->onDelete('cascade')
+                  ->after('idHorario');
+            $table->foreignId('codigoDoc')
+                  ->constrained('docentes', 'codigoDoc')
+                  ->onDelete('cascade')
+                  ->after('idAula');
         });
     }
 
