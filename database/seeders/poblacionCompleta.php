@@ -12,56 +12,48 @@ class poblacionCompleta extends Seeder
     public function run(): void
     {
         // =========================================================
-        // 1. MÓDULOS
-        // =========================================================
-        $modulos = [
-            ['nombreModulo' => 'Modulo de Permisos y Gestion de Accesos', 'created_at' => now(), 'updated_at' => now()],
-            ['nombreModulo' => 'Modulo de Postulantes y Resgistro digital',        'created_at' => now(), 'updated_at' => now()],
-            ['nombreModulo' => 'Modulo Academico y Gestion de Notas',     'created_at' => now(), 'updated_at' => now()],
-            ['nombreModulo' => 'Modulo de Planeacion de Logistica y Grupos',   'created_at' => now(), 'updated_at' => now()],
-            ['nombreModulo' => 'Modulo de Reportes, Analitica y Tablero de Control', 'created_at' => now(), 'updated_at' => now()],
-        ];
-        DB::table('modulos')->insert($modulos);
-
-        // =========================================================
-        // 2. PERMISOS
+        // 1. PERMISOS
         // =========================================================
         $permisos = [
-            ['nombrePermiso' => 'ver',     'created_at' => now(), 'updated_at' => now()],
-            ['nombrePermiso' => 'crear',   'created_at' => now(), 'updated_at' => now()],
-            ['nombrePermiso' => 'editar',  'created_at' => now(), 'updated_at' => now()],
-            ['nombrePermiso' => 'eliminar','created_at' => now(), 'updated_at' => now()],
-            ['nombrePermiso' => 'exportar','created_at' => now(), 'updated_at' => now()],
+            ['nombrePermiso' => 'ver',      'created_at' => now(), 'updated_at' => now()], // id=1
+            ['nombrePermiso' => 'crear',    'created_at' => now(), 'updated_at' => now()], // id=2
+            ['nombrePermiso' => 'editar',   'created_at' => now(), 'updated_at' => now()], // id=3
+            ['nombrePermiso' => 'eliminar', 'created_at' => now(), 'updated_at' => now()], // id=4
+            ['nombrePermiso' => 'exportar', 'created_at' => now(), 'updated_at' => now()], // id=5
         ];
         DB::table('permisos')->insert($permisos);
 
         // =========================================================
-        // 3. ROLES
+        // 2. ROLES
         // =========================================================
         $roles = [
-            ['nombre_Rol' => 'Administrador', 'descripcion' => 'Acceso total al sistema',                          'created_at' => now(), 'updated_at' => now()],
-            ['nombre_Rol' => 'Autoridades',    'descripcion' => 'Gestión de inscripciones y postulantes', 'created_at' => now(), 'updated_at' => now()],
-            ['nombre_Rol' => 'Coordinador',        'descripcion' => 'Gestión académica y de docentes',              'created_at' => now(), 'updated_at' => now()],
-            ['nombre_Rol' => 'Docente',       'descripcion' => 'Registro de asistencias, notas y ver carga horaria', 'created_at' => now(), 'updated_at' => now()],
-            ['nombre_Rol' => 'Postulante',    'descripcion' => 'Acceso a su ficha personal e inscripción',         'created_at' => now(), 'updated_at' => now()],
+            ['nombre_Rol' => 'Administrador', 'descripcion' => 'Acceso total al sistema',                                'created_at' => now(), 'updated_at' => now()], // id=1
+            ['nombre_Rol' => 'Autoridades',   'descripcion' => 'Visualización de reportes y estadísticas generales',     'created_at' => now(), 'updated_at' => now()], // id=2
+            ['nombre_Rol' => 'Coordinador',   'descripcion' => 'Gestión académica: grupos, docentes y postulantes',      'created_at' => now(), 'updated_at' => now()], // id=3
+            ['nombre_Rol' => 'Docente',       'descripcion' => 'Registro de notas, asistencia y carga horaria propia',   'created_at' => now(), 'updated_at' => now()], // id=4
+            ['nombre_Rol' => 'Postulante',    'descripcion' => 'Consulta de su ficha, inscripción y resultados propios', 'created_at' => now(), 'updated_at' => now()], // id=5
         ];
         DB::table('rols')->insert($roles);
 
         $rolPermisos = [];
-        // Admin (idRol=1) → todos los permisos (1-5)
-        for ($p = 1; $p <= 5; $p++) {
+
+        foreach ([1, 2, 3, 4, 5] as $p) {
             $rolPermisos[] = ['idRol' => 1, 'idPermiso' => $p, 'created_at' => now(), 'updated_at' => now()];
         }
-        // Secretaria (idRol=2) → ver, crear, editar
-        foreach ([1, 2, 3] as $p) {
+
+        foreach ([1, 2, 3, 5] as $p) {
             $rolPermisos[] = ['idRol' => 2, 'idPermiso' => $p, 'created_at' => now(), 'updated_at' => now()];
         }
-        // Docente (idRol=3) → ver, editar
-        foreach ([1, 3] as $p) {
+
+        foreach ([1, 2, 3] as $p) {
             $rolPermisos[] = ['idRol' => 3, 'idPermiso' => $p, 'created_at' => now(), 'updated_at' => now()];
         }
-        // Postulante (idRol=4) → ver
-        $rolPermisos[] = ['idRol' => 4, 'idPermiso' => 1, 'created_at' => now(), 'updated_at' => now()];
+
+        foreach ([1, 3] as $p) {
+            $rolPermisos[] = ['idRol' => 4, 'idPermiso' => $p, 'created_at' => now(), 'updated_at' => now()];
+        }
+
+        $rolPermisos[] = ['idRol' => 5, 'idPermiso' => 1, 'created_at' => now(), 'updated_at' => now()];
 
         DB::table('rol_permisos')->insert($rolPermisos);
 
@@ -167,8 +159,6 @@ class poblacionCompleta extends Seeder
             ['nombre' => 'Fotocopia de CI',           'tipo' => 'P', 'obligatorio' => true,  'created_at' => now(), 'updated_at' => now()],
             ['nombre' => 'Certificado de nacimiento', 'tipo' => 'P', 'obligatorio' => true,  'created_at' => now(), 'updated_at' => now()],
             ['nombre' => 'Libreta escolar',           'tipo' => 'P', 'obligatorio' => true,  'created_at' => now(), 'updated_at' => now()],
-            ['nombre' => 'Foto carnet 2x2',           'tipo' => 'P',    'obligatorio' => true,  'created_at' => now(), 'updated_at' => now()],
-            ['nombre' => 'Certificado médico',        'tipo' => 'P', 'obligatorio' => false, 'created_at' => now(), 'updated_at' => now()],
             ['nombre' => 'Titulo Bachiller',       'tipo' => 'P', 'obligatorio' => true,  'created_at' => now(), 'updated_at' => now()],
             // Requisitos específicos de docentes
             ['nombre' => 'Licenciado en Educación Superior','tipo' => 'D','obligatorio' => true,  'created_at' => now(), 'updated_at' => now()],

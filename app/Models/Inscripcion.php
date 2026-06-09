@@ -6,17 +6,21 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Inscripcion extends Model
 {
     protected $table      = 'inscripcions';
     protected $primaryKey = 'idInscripcion';
 
-    protected $fillable = ['fecha', 'estado', 'motivo_rechazo', 'idPost', 'idGestion'];
+    protected $fillable = ['fecha', 'estado', 'motivo_rechazo', 'promedio', 'resultado', 'codCarreraAsignada', 'estado_admision', 'idPost', 'idGestion'];
 
     protected function casts(): array
     {
-        return ['fecha' => 'date'];
+        return [
+            'fecha'    => 'date',
+            'promedio' => 'decimal:2',
+        ];
     }
 
     public function postulante(): BelongsTo
@@ -27,6 +31,11 @@ class Inscripcion extends Model
     public function gestion(): BelongsTo
     {
         return $this->belongsTo(Gestion::class, 'idGestion', 'idGestion');
+    }
+
+    public function carreraAsignada(): BelongsTo
+    {
+        return $this->belongsTo(Carrera::class, 'codCarreraAsignada', 'codCarrera');
     }
 
     public function carrerasInscritas(): HasMany

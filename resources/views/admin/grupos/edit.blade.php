@@ -88,7 +88,7 @@
                         </td>
                         <td class="px-4 py-2.5">
                             <form method="POST"
-                                  action="{{ route('grupos.materias.destroy', [$grupo->codigoG, $mg->idMateria]) }}"
+                                  action="{{ route('admin.grupos.materias.destroy', [$grupo->codigoG, $mg->idMateria]) }}"
                                   onsubmit="return confirm('¿Eliminar la asignación de «{{ $mg->materia?->nombMateria }}»?')">
                                 @csrf @method('DELETE')
                                 <button type="submit"
@@ -121,7 +121,7 @@
                 </div>
             @endif
 
-            <form method="POST" action="{{ route('grupos.materias.store', $grupo->codigoG) }}">
+            <form method="POST" action="{{ route('admin.grupos.materias.store', $grupo->codigoG) }}">
                 @csrf
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 

@@ -20,7 +20,10 @@ class AsignacionDocenteController extends Controller
     /** Muestra el formulario de asignación. */
     public function index(): View
     {
-        $grupos   = Grupo::with(['modalidad', 'turno', 'docentes', 'horarios', 'aulas', 'materias'])->get();
+        $grupos   = Grupo::with([
+            'modalidad', 'turno',
+            'materiGrupos' => fn($q) => $q->with('materia', 'horario', 'aula', 'docente'),
+        ])->get();
         $docentes = Docente::orderBy('apellido')->get();
         $aulas    = Aula::orderBy('idAula')->get();
         $horarios = Horario::orderBy('dia')->orderBy('hora_ini')->get();
@@ -61,20 +64,39 @@ class AsignacionDocenteController extends Controller
                 ->withInput();
         }
 
-        // ── Sin colisiones: guardar asignación ────────────────────────────────
-        DB::transaction(function () use ($grupo, $docente, $aula, $horario, $materia) {
-            // Docente → Grupo (docente__grupos)
-            $grupo->docentes()->syncWithoutDetaching([$docente->codigoDoc]);
+        // ── Duplicado: misma materia ya asignada en este grupo ────────────────
+        $yaExiste = DB::table('materi_grupos')
+            ->where('codigoG',   $grupo->codigoG)
+            ->where('idMateria', $materia->idMateria)
+            ->exists();
 
-            // Grupo → Horario (grupo__horarios)
-            $grupo->horarios()->syncWithoutDetaching([$horario->idHorario]);
+        if ($yaExiste) {
+            return back()->withInput()
+                ->with('error', 'Este grupo ya tiene asignada esa materia.');
+        }
 
-            // Grupo → Aula (grupo__aulas)
-            $grupo->aulas()->syncWithoutDetaching([$aula->idAula]);
+        // ── Límite de 4 grupos distintos por docente en la gestión ───────────
+        $gruposConDocente = DB::table('materi_grupos')
+            ->join('grupos', 'materi_grupos.codigoG', '=', 'grupos.codigoG')
+            ->where('materi_grupos.codigoDoc', $docente->codigoDoc)
+            ->where('grupos.idGestion', $grupo->idGestion)
+            ->distinct()
+            ->count('materi_grupos.codigoG');
 
-            // Materia → Grupo (materi_grupos)
-            $grupo->materias()->syncWithoutDetaching([$materia->idMateria]);
-        });
+        if ($gruposConDocente >= 4) {
+            return back()->withInput()->withErrors([
+                'codigoDoc' => 'El docente ha alcanzado el límite máximo de 4 grupos por gestión.',
+            ]);
+        }
+
+        // ── Sin colisiones ni duplicados: guardar en materi_grupos ────────────
+        DB::table('materi_grupos')->insert([
+            'codigoG'   => $grupo->codigoG,
+            'idMateria' => $materia->idMateria,
+            'idHorario' => $horario->idHorario,
+            'idAula'    => $aula->idAula,
+            'codigoDoc' => $docente->codigoDoc,
+        ]);
 
         BitacoraService::registrar(
             "Asignación: Docente {$docente->nombre_completo} → Grupo #{$grupo->codigoG} " .

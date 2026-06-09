@@ -35,7 +35,7 @@ class Docente extends Model
     {
         return $this->belongsToMany(
             Grupo::class,
-            'docente__grupos',
+            'materi_grupos',
             'codigoDoc',
             'codigoG'
         );

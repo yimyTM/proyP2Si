@@ -36,7 +36,7 @@ class ColisionHorariosService
                         $horarioExistente->dia,
                         $horarioExistente->hora_ini->format('H:i'),
                         $horarioExistente->hora_fin->format('H:i'),
-                        $horarioExistente->pivot->codigoG ?? '?'
+                        $horarioExistente->grupoId ?? '?'
                     ),
                 ];
             }
@@ -67,7 +67,7 @@ class ColisionHorariosService
                         $horarioExistente->dia,
                         $horarioExistente->hora_ini->format('H:i'),
                         $horarioExistente->hora_fin->format('H:i'),
-                        $horarioExistente->pivot->codigoG ?? '?'
+                        $horarioExistente->grupoId ?? '?'
                     ),
                 ];
             }
@@ -117,23 +117,33 @@ class ColisionHorariosService
         return $a->hora_ini < $b->hora_fin && $b->hora_ini < $a->hora_fin;
     }
 
-    /** Devuelve todos los horarios ya asignados a los grupos de este docente. */
+    /** Devuelve los horarios asignados al docente vía materi_grupos, con grupoId adjunto. */
     private static function horariosDelDocente(Docente $docente, ?int $excludeGrupo): Collection
     {
-        return $docente->grupos()
-            ->when($excludeGrupo, fn($q) => $q->where('grupos.codigoG', '!=', $excludeGrupo))
-            ->with('horarios')
+        return \App\Models\materi_grupo::where('codigoDoc', $docente->codigoDoc)
+            ->when($excludeGrupo, fn($q) => $q->where('codigoG', '!=', $excludeGrupo))
+            ->with('horario')
             ->get()
-            ->flatMap(fn($grupo) => $grupo->horarios);
+            ->filter(fn($mg) => $mg->horario !== null)
+            ->map(function ($mg) {
+                $h = $mg->horario;
+                $h->grupoId = $mg->codigoG;
+                return $h;
+            });
     }
 
-    /** Devuelve todos los horarios ya asignados a los grupos de este aula. */
+    /** Devuelve los horarios asignados al aula vía materi_grupos, con grupoId adjunto. */
     private static function horariosDelAula(Aula $aula, ?int $excludeGrupo): Collection
     {
-        return $aula->grupos()
-            ->when($excludeGrupo, fn($q) => $q->where('grupos.codigoG', '!=', $excludeGrupo))
-            ->with('horarios')
+        return \App\Models\materi_grupo::where('idAula', $aula->idAula)
+            ->when($excludeGrupo, fn($q) => $q->where('codigoG', '!=', $excludeGrupo))
+            ->with('horario')
             ->get()
-            ->flatMap(fn($grupo) => $grupo->horarios);
+            ->filter(fn($mg) => $mg->horario !== null)
+            ->map(function ($mg) {
+                $h = $mg->horario;
+                $h->grupoId = $mg->codigoG;
+                return $h;
+            });
     }
 }

@@ -1,13 +1,16 @@
 <?php
 
 use App\Http\Controllers\AdminController;
+use App\Http\Controllers\AulaController;
 use App\Http\Controllers\GestionController;
 use App\Http\Controllers\GestionCarreraController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\RolController;
 use App\Http\Controllers\PasswordResetController;
 use App\Http\Controllers\DocenteController;
-use App\Http\Controllers\DocenteGrupoController;
+use App\Http\Controllers\Admin\AsignacionDocenteController;
+use App\Http\Controllers\Admin\AdmisionController;
+use App\Http\Controllers\Admin\ReporteController;
 use App\Http\Controllers\GrupoController;
 use App\Http\Controllers\InscripcionController;
 use App\Http\Controllers\MateriGrupoController;
@@ -17,6 +20,8 @@ use App\Http\Controllers\RequisitoPostulanteController;
 use App\Http\Controllers\RequisitoController;
 use App\Http\Controllers\TurnoController;
 use App\Http\Controllers\AsistenciaController;
+use App\Http\Controllers\Docente\CalificacionController;
+use App\Http\Controllers\Docente\ResultadoController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
@@ -90,6 +95,10 @@ Route::middleware(['auth', 'role:Administrador,Autoridades,Coordinador'])
         Route::get('/estudiantes', [PostulanteController::class, 'buscar'])->name('estudiantes');
         Route::resource('postulantes', PostulanteController::class)->except(['index']);
 
+        // CU03 – CRUD Aulas
+        Route::resource('aulas', AulaController::class)
+            ->parameters(['aulas' => 'aula']);
+
         // CU06 – CRUD Grupos (manual)
         Route::resource('grupos', GrupoController::class)
             ->parameters(['grupos' => 'grupo'])
@@ -99,13 +108,23 @@ Route::middleware(['auth', 'role:Administrador,Autoridades,Coordinador'])
         Route::post('/grupos/{grupo}/materias',             [MateriGrupoController::class, 'store'])->name('grupos.materias.store');
         Route::delete('/grupos/{grupo}/materias/{materia}', [MateriGrupoController::class, 'destroy'])->name('grupos.materias.destroy');
 
-        // CU10 – Asignación docente y carga logística
-        Route::get('/asignacion-docente',  [DocenteGrupoController::class, 'asignacion'])->name('asignacion-docente');
-        Route::post('/asignacion-docente', [DocenteGrupoController::class, 'store'])->name('asignacion-docente.store');
+        // Asignación docente (vista global admin)
+        Route::get('/asignacion-docente',  [AsignacionDocenteController::class, 'index'])->name('asignacion-docente');
+        Route::post('/asignacion-docente', [AsignacionDocenteController::class, 'store'])->name('asignacion-docente.store');
 
         // Roles y Permisos
         Route::get('/roles', [RolController::class, 'index'])->name('roles.index');
         Route::put('/roles/{rol}/permisos', [RolController::class, 'actualizarPermisos'])->name('roles.permisos.update');
+
+        // CU14 – Reportes y analíticas institucionales
+        Route::get('/reportes',                        [ReporteController::class, 'index'])->name('reportes.index');
+        Route::get('/reportes/{gestion}/csv',          [ReporteController::class, 'exportarCsv'])->name('reportes.csv');
+        Route::get('/reportes/{gestion}/imprimir',     [ReporteController::class, 'imprimir'])->name('reportes.imprimir');
+
+        // CU13 – Admisión y cupos por carrera
+        Route::get('/admision',           [AdmisionController::class, 'index'])->name('admision.index');
+        Route::get('/admision/{gestion}',  [AdmisionController::class, 'show'])->name('admision.show');
+        Route::post('/admision/{gestion}', [AdmisionController::class, 'procesar'])->name('admision.procesar');
 
         // CRUD Turnos
         Route::get('/turnos',              [TurnoController::class, 'index'])->name('turnos.index');
@@ -131,6 +150,16 @@ Route::middleware(['auth', 'role:Docente'])
         Route::get('/asistencia',            [AsistenciaController::class, 'index'])->name('asistencia.index');
         Route::get('/asistencia/{grupo}',    [AsistenciaController::class, 'tomar'])->name('asistencia.tomar');
         Route::post('/asistencia',           [AsistenciaController::class, 'store'])->name('asistencia.store');
+
+        // CU11 – Calificaciones
+        Route::get('/calificaciones',                     [CalificacionController::class, 'index'])->name('calificaciones.index');
+        Route::get('/calificaciones/{grupo}/{materia}',   [CalificacionController::class, 'edit'])->name('calificaciones.edit');
+        Route::post('/calificaciones/{grupo}/{materia}',  [CalificacionController::class, 'update'])->name('calificaciones.update');
+
+        // CU12 – Resultados
+        Route::get('/resultados',          [ResultadoController::class, 'index'])->name('resultados.index');
+        Route::get('/resultados/{grupo}',  [ResultadoController::class, 'show'])->name('resultados.show');
+        Route::post('/resultados/{grupo}', [ResultadoController::class, 'procesar'])->name('resultados.procesar');
     });
 
 // ── Panel Postulante ──────────────────────────────────────────────────────────

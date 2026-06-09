@@ -97,47 +97,46 @@
                     <thead class="bg-gray-50">
                         <tr class="text-left text-xs text-gray-500 uppercase tracking-wider">
                             <th class="px-4 py-3">Grupo</th>
-                            <th class="px-4 py-3">Modalidad</th>
-                            <th class="px-4 py-3">Docente(s)</th>
-                            <th class="px-4 py-3">Horario(s)</th>
-                            <th class="px-4 py-3">Aula(s)</th>
-                            <th class="px-4 py-3">Materia(s)</th>
+                            <th class="px-4 py-3">Modalidad / Turno</th>
+                            <th class="px-4 py-3">Asignaciones</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100">
                         @forelse($grupos as $g)
-                        <tr class="hover:bg-gray-50">
+                        <tr class="hover:bg-gray-50 align-top">
                             <td class="px-4 py-3 font-medium text-gray-800">#{{ $g->codigoG }}</td>
-                            <td class="px-4 py-3 text-xs text-gray-600">{{ $g->modalidad?->nombModalidad }}</td>
                             <td class="px-4 py-3 text-xs text-gray-600">
-                                @forelse($g->docentes as $d)
-                                    <span class="block">{{ $d->nombre }} {{ $d->apellido }}</span>
-                                @empty <span class="text-gray-300">Sin docente</span>
-                                @endforelse
+                                {{ $g->modalidad?->nombModalidad }}<br>
+                                <span class="text-gray-400">{{ $g->turno?->nombTurno }}</span>
                             </td>
                             <td class="px-4 py-3 text-xs text-gray-600">
-                                @forelse($g->horarios as $h)
-                                    <span class="block">{{ $h->dia }} {{ $h->hora_ini->format('H:i') }}–{{ $h->hora_fin->format('H:i') }}</span>
-                                @empty <span class="text-gray-300">Sin horario</span>
-                                @endforelse
-                            </td>
-                            <td class="px-4 py-3 text-xs text-gray-600">
-                                @forelse($g->aulas as $a)
-                                    <span class="block">Aula #{{ $a->idAula }}</span>
-                                @empty <span class="text-gray-300">Sin aula</span>
-                                @endforelse
-                            </td>
-                            <td class="px-4 py-3 text-xs text-gray-600">
-                                @forelse($g->materias as $m)
-                                    <span class="block">{{ $m->nombMateria }}</span>
-                                @empty <span class="text-gray-300">Sin materia</span>
+                                @forelse($g->materiGrupos as $mg)
+                                <div class="flex flex-wrap items-center gap-x-2 gap-y-0.5 py-1 border-b border-dashed border-gray-100 last:border-0">
+                                    <span class="font-medium text-gray-800">
+                                        {{ $mg->docente?->nombre }} {{ $mg->docente?->apellido }}
+                                    </span>
+                                    <span class="text-gray-300">·</span>
+                                    <span class="text-blue-600">{{ $mg->materia?->nombMateria ?? '—' }}</span>
+                                    <span class="text-gray-300">·</span>
+                                    <span>
+                                        @if($mg->horario)
+                                            {{ $mg->horario->dia }}
+                                            {{ $mg->horario->hora_ini->format('H:i') }}–{{ $mg->horario->hora_fin->format('H:i') }}
+                                        @else —
+                                        @endif
+                                    </span>
+                                    <span class="text-gray-300">·</span>
+                                    <span>Aula #{{ $mg->idAula }}</span>
+                                </div>
+                                @empty
+                                <span class="text-gray-300">Sin asignaciones</span>
                                 @endforelse
                             </td>
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="6" class="px-4 py-10 text-center text-gray-400 text-sm">
-                                No hay grupos creados. Primero ejecuta el CU09 para abrir grupos.
+                            <td colspan="3" class="px-4 py-10 text-center text-gray-400 text-sm">
+                                No hay grupos creados. Primero ejecuta el CU06 para abrir grupos.
                             </td>
                         </tr>
                         @endforelse
