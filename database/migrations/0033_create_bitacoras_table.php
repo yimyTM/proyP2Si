@@ -14,6 +14,8 @@ return new class extends Migration
         Schema::create('bitacoras', function (Blueprint $table) {
     $table->id('idBitacora');
     $table->text('descripcion');
+    $table->date('fecha')->nullable();
+            $table->time('hora')->nullable();
     $table->string('direccionIP', 45);
     $table->string('url')->nullable();
     $table->string('metodo', 10)->nullable();

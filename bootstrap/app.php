@@ -29,5 +29,16 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->redirectUsersTo('/dashboard');
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        $exceptions->render(function (\Illuminate\Auth\AuthenticationException $e, \Illuminate\Http\Request $request) {
+            if (! $request->expectsJson()) {
+                $redirect = redirect()->route('login');
+                // Solo mostrar el mensaje si el usuario tenía una sesión activa (cookie de sesión presente)
+                if ($request->hasCookie(config('session.cookie'))) {
+                    $redirect = $redirect->withErrors([
+                        'session' => 'Su sesión ha expirado. Por favor, inicie sesión nuevamente.',
+                    ]);
+                }
+                return $redirect;
+            }
+        });
     })->create();

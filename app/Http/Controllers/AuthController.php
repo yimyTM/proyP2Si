@@ -115,10 +115,10 @@ class AuthController extends Controller
         $rol = $user->rol?->nombre_Rol;
 
         return match ($rol) {
-            'Administrador' => redirect()->route('admin.dashboard'),
-            'Docente'       => redirect()->route('docente.dashboard'),
-            'Postulante'    => redirect()->route('postulante.dashboard'),
-            default         => redirect('/'),
+            'Administrador', 'Autoridades', 'Coordinador' => redirect()->route('admin.dashboard'),
+            'Docente'    => redirect()->route('docente.dashboard'),
+            'Postulante' => redirect()->route('postulante.dashboard'),
+            default      => abort(403, 'Rol sin panel asignado.'),
         };
     }
 }

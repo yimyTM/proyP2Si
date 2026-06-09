@@ -6,7 +6,7 @@
 @section('content')
 <div class="max-w-2xl">
     <div class="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-        <p class="text-sm text-gray-500 mb-4">La gestión se creará en estado <strong>Cerrada</strong>. Luego configurará los <strong>cupos por carrera</strong> (pueden ser distintos para cada una).</p>
+        <p class="text-sm text-gray-500 mb-4">La gestión se creará en estado <strong>Abierta</strong>. Solo puede haber una gestión abierta a la vez. A continuación configurará los <strong>cupos por carrera</strong>.</p>
         <form method="POST" action="{{ route('admin.gestiones.store') }}" class="space-y-4">
             @csrf
             @include('admin.gestiones._form')

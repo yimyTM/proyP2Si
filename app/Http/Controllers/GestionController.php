@@ -26,20 +26,22 @@ class GestionController extends Controller
 
     public function store(GestionRequest $request): RedirectResponse
     {
-        $datos = $request->validated();
-        $datos['estado'] = $datos['estado'] ?? 'Cerrada';
-
-        if ($datos['estado'] === 'Abierta') {
-            Gestion::where('estado', 'Abierta')->update(['estado' => 'Cerrada']);
+        if (Gestion::where('estado', 'Abierta')->exists()) {
+            return back()
+                ->withInput()
+                ->with('error', 'Ya existe una gestión activa. Cierre la gestión actual antes de crear una nueva.');
         }
+
+        $datos            = $request->validated();
+        $datos['estado']  = 'Abierta';
 
         $gestion = Gestion::create($datos);
 
-        BitacoraService::registrar("Gestión #{$gestion->idGestion} creada ({$gestion->estado}).");
+        BitacoraService::registrar("Gestión #{$gestion->idGestion} '{$gestion->nombre}' creada y abierta.");
 
         return redirect()
             ->route('admin.gestiones.carreras.index', $gestion)
-            ->with('success', 'Gestión creada. Configure los cupos por carrera.');
+            ->with('success', 'Gestión creada y abierta. Configure los cupos por carrera.');
     }
 
     public function edit(Gestion $gestion): View
@@ -49,12 +51,15 @@ class GestionController extends Controller
 
     public function update(GestionRequest $request, Gestion $gestion): RedirectResponse
     {
-        $datos = $request->validated();
+        $datos       = $request->validated();
+        $nuevoEstado = $datos['estado'] ?? $gestion->estado;
 
-        if (($datos['estado'] ?? $gestion->estado) === 'Abierta') {
-            Gestion::where('estado', 'Abierta')
-                ->where('idGestion', '!=', $gestion->idGestion)
-                ->update(['estado' => 'Cerrada']);
+        if ($nuevoEstado === 'Abierta' && ! $gestion->estaAbierta()) {
+            if (Gestion::where('estado', 'Abierta')->exists()) {
+                return back()
+                    ->withInput()
+                    ->with('error', 'Ya existe una gestión activa. Cierre la gestión actual antes de abrir otra.');
+            }
         }
 
         $gestion->update($datos);
@@ -72,12 +77,15 @@ class GestionController extends Controller
             return back()->with('error', 'Esta gestión ya está abierta.');
         }
 
-        Gestion::where('estado', 'Abierta')->update(['estado' => 'Cerrada']);
+        if (Gestion::where('estado', 'Abierta')->exists()) {
+            return back()->with('error', 'Ya existe una gestión activa. Cierre la gestión actual antes de abrir otra.');
+        }
+
         $gestion->update(['estado' => 'Abierta']);
 
-        BitacoraService::registrar("Gestión #{$gestion->idGestion} abierta.");
+        BitacoraService::registrar("Gestión #{$gestion->idGestion} reabierta.");
 
-        return back()->with('success', "Gestión #{$gestion->idGestion} abierta. Las demás gestiones fueron cerradas.");
+        return back()->with('success', "Gestión #{$gestion->idGestion} reabierta correctamente.");
     }
 
     public function cerrar(Gestion $gestion): RedirectResponse

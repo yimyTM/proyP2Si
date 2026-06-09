@@ -11,7 +11,7 @@ class Gestion extends Model
     protected $table      = 'gestions';
     protected $primaryKey = 'idGestion';
 
-    protected $fillable = ['fecha_ini', 'fecha_fin', 'estado'];
+    protected $fillable = ['nombre', 'fecha_ini', 'fecha_fin', 'capacidad_maxima', 'estado'];
 
     protected function casts(): array
     {

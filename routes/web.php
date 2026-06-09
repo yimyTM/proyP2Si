@@ -27,10 +27,10 @@ Route::get('/', fn() => redirect()->route('login'));
 // autenticado, evitando el bucle infinito con /login.
 Route::middleware('auth')->get('/dashboard', function () {
     return match (Auth::user()->rol?->nombre_Rol) {
-        'Administrador' => redirect()->route('admin.dashboard'),
-        'Docente'       => redirect()->route('docente.dashboard'),
-        'Postulante'    => redirect()->route('postulante.dashboard'),
-        default         => redirect('/'),
+        'Administrador', 'Autoridades', 'Coordinador' => redirect()->route('admin.dashboard'),
+        'Docente'    => redirect()->route('docente.dashboard'),
+        'Postulante' => redirect()->route('postulante.dashboard'),
+        default      => abort(403, 'Rol sin panel asignado.'),
     };
 })->name('dashboard');
 
@@ -52,7 +52,7 @@ Route::get('/verificar-pago',  [PagoController::class, 'verificar'])->name('veri
 Route::post('/verificar-pago', [PagoController::class, 'consultar'])->name('postulante.verificar-pago.verificar');
 
 // ── Panel Administrador ───────────────────────────────────────────────────────
-Route::middleware(['auth', 'role:Administrador'])
+Route::middleware(['auth', 'role:Administrador,Autoridades,Coordinador'])
     ->prefix('admin')
     ->name('admin.')
     ->group(function () {
