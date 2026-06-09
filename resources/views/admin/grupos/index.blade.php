@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @section('title', 'Gestión de Grupos')
-@section('page-title', 'Gestión de Grupos Académicos')
+@section('page-title', 'CU06 – Gestión de Grupos Académicos')
 
 @section('content')
 <div class="space-y-5">
@@ -14,17 +14,46 @@
         <div class="p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm">{{ session('error') }}</div>
     @endif
 
+    {{-- Banner de gestión activa --}}
+    @if($gestionActiva)
+        <div class="flex items-center gap-3 px-5 py-3 rounded-xl text-sm font-medium text-white" style="background-color: #283342;">
+            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+            </svg>
+            Gestión activa: <strong class="ml-1">{{ $gestionActiva->nombre ?? "ID {$gestionActiva->idGestion}" }}</strong>
+            &nbsp;·&nbsp; Mostrando grupos de esta gestión
+        </div>
+    @else
+        <div class="flex items-center gap-3 px-5 py-3 rounded-xl text-sm bg-amber-50 border border-amber-200 text-amber-700">
+            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            No hay una gestión académica activa. Debe existir una gestión activa para crear grupos.
+        </div>
+    @endif
+
     {{-- Header con botón crear --}}
     <div class="flex items-center justify-between">
         <p class="text-sm text-gray-500">{{ $grupos->total() }} grupo(s) registrado(s)</p>
+        @if($gestionActiva)
         <a href="{{ route('admin.grupos.create') }}"
            class="flex items-center gap-2 px-4 py-2.5 rounded-xl text-white text-sm font-semibold transition hover:opacity-90"
            style="background-color: #283342;">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
             </svg>
-            Nuevo Grupo
+            + Nuevo Grupo
         </a>
+        @else
+        <button disabled
+                class="flex items-center gap-2 px-4 py-2.5 rounded-xl text-white text-sm font-semibold opacity-40 cursor-not-allowed"
+                style="background-color: #283342;">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+            </svg>
+            Nuevo Grupo
+        </button>
+        @endif
     </div>
 
     {{-- Tabla --}}
@@ -33,21 +62,21 @@
             <table class="w-full text-sm">
                 <thead class="bg-gray-50">
                     <tr class="text-left text-xs text-gray-500 uppercase tracking-wider">
-                        <th class="px-5 py-3">#</th>
+                        <th class="px-5 py-3">Grupo</th>
                         <th class="px-5 py-3">Capacidad</th>
                         <th class="px-5 py-3">Modalidad</th>
                         <th class="px-5 py-3">Turno</th>
-                        <th class="px-5 py-3">Horario</th>
-                        <th class="px-5 py-3">Aula</th>
-                        <th class="px-5 py-3">Materia</th>
-                        <th class="px-5 py-3">Docente</th>
+                        <th class="px-5 py-3">Materias / Asignaciones</th>
                         <th class="px-5 py-3">Acciones</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100">
                     @forelse($grupos as $grupo)
                     <tr class="hover:bg-gray-50 transition">
-                        <td class="px-5 py-3 font-bold text-gray-800">#{{ $grupo->codigoG }}</td>
+                        <td class="px-5 py-3">
+                            <span class="font-bold text-gray-800">{{ $grupo->numero_grupo }}</span>
+                            <span class="text-xs text-gray-400 ml-1">#{{ $grupo->codigoG }}</span>
+                        </td>
                         <td class="px-5 py-3">
                             <span class="inline-flex items-center gap-1.5 text-gray-700">
                                 <svg class="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -62,28 +91,27 @@
                             </span>
                         </td>
                         <td class="px-5 py-3 text-gray-600">{{ $grupo->turno?->nombTurno ?? '—' }}</td>
-                        <td class="px-5 py-3 text-gray-600 text-xs">
-                            @if($h = $grupo->horarios->first())
-                                {{ $h->dia }} {{ $h->hora_ini->format('H:i') }}–{{ $h->hora_fin->format('H:i') }}
+                        <td class="px-5 py-3">
+                            @if($grupo->materiGrupos->isNotEmpty())
+                                <ul class="space-y-1">
+                                @foreach($grupo->materiGrupos as $mg)
+                                    <li class="text-xs text-gray-700 leading-snug">
+                                        <span class="font-medium">{{ $mg->materia?->nombMateria }}</span>
+                                        @if($mg->docente)
+                                            · <span class="text-gray-500">{{ $mg->docente->apellido }}</span>
+                                        @else
+                                            · <span class="text-gray-300">Sin docente</span>
+                                        @endif
+                                        @if($mg->horario)
+                                            · <span class="text-gray-400">{{ $mg->horario->dia }} {{ $mg->horario->hora_ini->format('H:i') }}</span>
+                                        @else
+                                            · <span class="text-gray-300">Sin horario</span>
+                                        @endif
+                                    </li>
+                                @endforeach
+                                </ul>
                             @else
-                                <span class="text-gray-300">Sin horario</span>
-                            @endif
-                        </td>
-                        <td class="px-5 py-3 text-gray-600 text-xs">
-                            @if($a = $grupo->aulas->first())
-                                Aula #{{ $a->idAula }} ({{ $a->capacidad }} cupos)
-                            @else
-                                <span class="text-gray-300">Sin aula</span>
-                            @endif
-                        </td>
-                        <td class="px-5 py-3 text-gray-600 text-xs">
-                            {{ $grupo->materias->first()?->nombMateria ?? '—' }}
-                        </td>
-                        <td class="px-5 py-3 text-gray-600 text-xs">
-                            @if($d = $grupo->docentes->first())
-                                {{ $d->nombre }} {{ $d->apellido }}
-                            @else
-                                <span class="text-gray-300">Sin docente</span>
+                                <span class="text-xs text-gray-300">Sin asignaciones</span>
                             @endif
                         </td>
                         <td class="px-5 py-3">
@@ -97,7 +125,7 @@
                                 </a>
                                 <form method="POST"
                                       action="{{ route('admin.grupos.destroy', $grupo->codigoG) }}"
-                                      onsubmit="return confirm('¿Eliminar el Grupo #{{ $grupo->codigoG }}?')">
+                                      onsubmit="return confirm('¿Eliminar el Grupo «{{ $grupo->numero_grupo }}»?')">
                                     @csrf @method('DELETE')
                                     <button type="submit"
                                             class="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition"
@@ -113,7 +141,11 @@
                     @empty
                     <tr>
                         <td colspan="9" class="px-5 py-12 text-center text-gray-400 text-sm">
-                            No hay grupos registrados. Crea el primero con el botón "Nuevo Grupo".
+                            @if($gestionActiva)
+                                No hay grupos en la gestión activa. Crea el primero con "+ Nuevo Grupo".
+                            @else
+                                No hay gestión activa. Abre una gestión para comenzar a crear grupos.
+                            @endif
                         </td>
                     </tr>
                     @endforelse

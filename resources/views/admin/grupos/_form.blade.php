@@ -14,15 +14,34 @@
 
 <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
 
+    {{-- Número de grupo --}}
+    <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1.5">
+            Número de grupo <span class="text-red-500">*</span>
+        </label>
+        <input type="text" name="numero_grupo" maxlength="50"
+               value="{{ old('numero_grupo', $edicion ? $grupo->numero_grupo : '') }}"
+               placeholder="Ej: A, B, 01, G1..."
+               class="w-full px-4 py-2.5 border rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#283342]/30
+                      {{ $errors->has('numero_grupo') ? 'border-red-400 bg-red-50' : 'border-gray-300' }}">
+        @error('numero_grupo')
+            <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
+        @enderror
+    </div>
+
     {{-- Capacidad --}}
     <div>
         <label class="block text-sm font-medium text-gray-700 mb-1.5">
-            Capacidad <span class="text-red-500">*</span>
+            Capacidad máxima <span class="text-red-500">*</span>
         </label>
-        <input type="number" name="capacidad" min="1" max="200"
+        <input type="number" name="capacidad" min="1" max="500"
                value="{{ $old('capacidad', '') }}"
                placeholder="Ej: 40"
-               class="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#283342]/30">
+               class="w-full px-4 py-2.5 border rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#283342]/30
+                      {{ $errors->has('capacidad') ? 'border-red-400 bg-red-50' : 'border-gray-300' }}">
+        @error('capacidad')
+            <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
+        @enderror
     </div>
 
     {{-- Modalidad --}}
@@ -59,65 +78,6 @@
         </select>
     </div>
 
-    {{-- Horario --}}
-    <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1.5">Horario</label>
-        <select name="idHorario"
-                class="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#283342]/30">
-            <option value="">Sin horario asignado</option>
-            @foreach($horarios as $h)
-                <option value="{{ $h->idHorario }}"
-                    {{ old('idHorario', $edicion ? ($horarioActual ?? '') : '') == $h->idHorario ? 'selected' : '' }}>
-                    {{ $h->dia }} · {{ $h->hora_ini->format('H:i') }} – {{ $h->hora_fin->format('H:i') }}
-                </option>
-            @endforeach
-        </select>
-    </div>
-
-    {{-- Aula --}}
-    <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1.5">Aula</label>
-        <select name="idAula"
-                class="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#283342]/30">
-            <option value="">Sin aula asignada</option>
-            @foreach($aulas as $a)
-                <option value="{{ $a->idAula }}"
-                    {{ old('idAula', $edicion ? ($aulaActual ?? '') : '') == $a->idAula ? 'selected' : '' }}>
-                    Aula #{{ $a->idAula }} — {{ $a->capacidad }} cupos ({{ $a->cantSillas }} sillas / {{ $a->cantMesas }} mesas)
-                </option>
-            @endforeach
-        </select>
-    </div>
-
-    {{-- Materia --}}
-    <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1.5">Materia</label>
-        <select name="idMateria"
-                class="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#283342]/30">
-            <option value="">Sin materia asignada</option>
-            @foreach($materias as $m)
-                <option value="{{ $m->idMateria }}"
-                    {{ old('idMateria', $edicion ? ($materiaActual ?? '') : '') == $m->idMateria ? 'selected' : '' }}>
-                    {{ $m->nombMateria }}
-                </option>
-            @endforeach
-        </select>
-    </div>
-
-    {{-- Docente --}}
-    <div class="md:col-span-2">
-        <label class="block text-sm font-medium text-gray-700 mb-1.5">Docente asignado</label>
-        <select name="codigoDoc"
-                class="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#283342]/30">
-            <option value="">Sin docente asignado</option>
-            @foreach($docentes as $d)
-                <option value="{{ $d->codigoDoc }}"
-                    {{ old('codigoDoc', $edicion ? ($docenteActual ?? '') : '') == $d->codigoDoc ? 'selected' : '' }}>
-                    {{ $d->nombre }} {{ $d->apellido }} (CI: {{ $d->ci }})
-                </option>
-            @endforeach
-        </select>
-    </div>
 </div>
 
 <div class="flex gap-3 mt-6">

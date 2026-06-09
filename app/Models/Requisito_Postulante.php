@@ -14,6 +14,7 @@ class Requisito_Postulante extends Model
         'fecha_entrega',
         'entregado',
         'validado',
+        'ruta_archivo',
         'idReq',
         'idPost',
     ];

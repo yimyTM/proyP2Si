@@ -28,10 +28,6 @@
         <h3 class="font-semibold text-gray-800 mb-4">Información personal</h3>
         <dl class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
             <div>
-                <dt class="text-gray-500">Correo</dt>
-                <dd class="font-medium text-gray-800">{{ $postulante->correo ?? '—' }}</dd>
-            </div>
-            <div>
                 <dt class="text-gray-500">Teléfono</dt>
                 <dd class="font-medium text-gray-800">{{ $postulante->nroTelefono ?? '—' }}</dd>
             </div>

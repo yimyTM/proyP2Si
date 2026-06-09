@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
-@section('title', 'Carga Masiva de Personal')
-@section('page-title', 'CU02 – Carga Masiva de Personal Docente')
+@section('title', 'Importar Usuarios')
+@section('page-title', 'CU04 – Importar Usuarios Masivamente')
 
 @section('content')
 <div class="max-w-2xl mx-auto space-y-6">
@@ -10,21 +10,24 @@
     <div class="bg-blue-50 border border-blue-200 rounded-xl p-5">
         <h3 class="font-semibold text-blue-800 mb-2">Instrucciones</h3>
         <ol class="list-decimal list-inside space-y-1 text-sm text-blue-700">
-            <li>Descargue la plantilla CSV haciendo clic en el botón de abajo.</li>
-            <li>Complete los datos de los docentes (un docente por fila).</li>
-            <li>Suba el archivo con el botón "Importar".</li>
-            <li>El sistema creará los registros y generará contraseñas provisionales para quienes tengan correo.</li>
+            <li>Descargue la plantilla oficial haciendo clic en el botón de abajo.</li>
+            <li>Complete los datos del personal (un usuario por fila).</li>
+            <li>Suba el archivo en formato <strong>.csv</strong> o <strong>.xlsx</strong>.</li>
+            <li>El sistema creará las cuentas y generará contraseñas provisionales.</li>
         </ol>
         <a href="{{ route('admin.importar-personal.plantilla') }}"
            class="inline-flex items-center gap-2 mt-3 px-4 py-2 text-sm rounded-lg bg-blue-100 hover:bg-blue-200 text-blue-800 transition">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+            </svg>
             Descargar plantilla CSV
         </a>
     </div>
 
-    {{-- Columnas esperadas --}}
+    {{-- Columnas requeridas --}}
     <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-        <p class="text-xs text-gray-400 uppercase tracking-wider mb-3">Columnas del CSV</p>
+        <p class="text-xs text-gray-400 uppercase tracking-wider mb-3">Columnas del archivo</p>
         <div class="overflow-x-auto">
             <table class="w-full text-sm">
                 <thead>
@@ -36,17 +39,18 @@
                 </thead>
                 <tbody class="divide-y divide-gray-50">
                     @foreach([
-                        ['nombre',      'Sí',  'Nombre(s) del docente'],
-                        ['apellido',    'Sí',  'Apellido(s) del docente'],
-                        ['ci',          'Sí',  'Cédula de identidad (única)'],
-                        ['correo',      'No',  'Correo institucional (genera cuenta de acceso)'],
-                        ['nroTelefono', 'No',  'Teléfono de contacto'],
-                        ['direccion',   'No',  'Dirección domiciliaria'],
+                        ['nombre',    'Sí', 'Nombre(s) del usuario'],
+                        ['apellido',  'Sí', 'Apellido(s) del usuario'],
+                        ['ci',        'Sí', 'Cédula de identidad (única en el sistema)'],
+                        ['correo',    'Sí*','Correo institucional — genera la cuenta de acceso'],
+                        ['telefono',  'No', 'Teléfono de contacto'],
+                        ['rol',       'Sí', 'Rol asignado: Docente · Coordinador · Autoridades'],
                     ] as $col)
                     <tr>
                         <td class="py-2 pr-4 font-mono text-xs text-gray-700">{{ $col[0] }}</td>
                         <td class="py-2 pr-4">
-                            <span class="px-2 py-0.5 rounded-full text-xs {{ $col[1] === 'Sí' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600' }}">
+                            <span class="px-2 py-0.5 rounded-full text-xs
+                                {{ str_starts_with($col[1], 'Sí') ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600' }}">
                                 {{ $col[1] }}
                             </span>
                         </td>
@@ -56,11 +60,12 @@
                 </tbody>
             </table>
         </div>
+        <p class="text-xs text-gray-400 mt-3">* Obligatorio para Coordinador y Autoridades. Para Docente, si se omite no se genera cuenta de acceso.</p>
     </div>
 
     {{-- Formulario de carga --}}
     <div class="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-        <h3 class="font-semibold text-gray-800 mb-4">Subir archivo CSV</h3>
+        <h3 class="font-semibold text-gray-800 mb-4">Subir archivo</h3>
 
         @if($errors->any())
             <div class="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
@@ -74,15 +79,20 @@
             @csrf
 
             <div class="mb-5">
-                <label class="block text-sm font-medium text-gray-700 mb-2">Archivo CSV</label>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Archivo CSV o Excel</label>
                 <div id="drop-zone"
                      class="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center cursor-pointer hover:border-[#283342] transition">
                     <svg class="w-10 h-10 mx-auto mb-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                              d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
                     </svg>
-                    <p class="text-sm text-gray-500">Arrastra tu CSV aquí o <span class="text-[#283342] font-medium underline">haz clic para seleccionar</span></p>
-                    <p id="nombre-archivo" class="text-xs text-gray-400 mt-2">Ningún archivo seleccionado</p>
-                    <input type="file" id="archivo" name="archivo" accept=".csv,text/csv" class="hidden">
+                    <p class="text-sm text-gray-500">
+                        Arrastra tu archivo aquí o
+                        <span class="text-[#283342] font-medium underline">haz clic para seleccionar</span>
+                    </p>
+                    <p class="text-xs text-gray-400 mt-1">Formatos aceptados: .csv · .xlsx — Máximo 5 MB</p>
+                    <p id="nombre-archivo" class="text-xs font-medium text-[#283342] mt-2">Ningún archivo seleccionado</p>
+                    <input type="file" id="archivo" name="archivo" accept=".csv,.xlsx,text/csv" class="hidden">
                 </div>
             </div>
 

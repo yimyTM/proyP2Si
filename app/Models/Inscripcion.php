@@ -12,7 +12,7 @@ class Inscripcion extends Model
     protected $table      = 'inscripcions';
     protected $primaryKey = 'idInscripcion';
 
-    protected $fillable = ['fecha', 'estado', 'idPost', 'idGestion'];
+    protected $fillable = ['fecha', 'estado', 'motivo_rechazo', 'idPost', 'idGestion'];
 
     protected function casts(): array
     {

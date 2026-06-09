@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Carrera;
 use App\Models\Docente;
+use App\Models\Gestion;
 use App\Models\Postulante;
 use App\Models\requisito;
 use App\Models\Requisito_docente;
@@ -14,32 +16,102 @@ use Illuminate\View\View;
 
 class RequisitoPostulanteController extends Controller
 {
-    // ── CU04 (Admin): Supervisión y validación de expedientes ─────────────────
+    // ── CU08: Consultar y gestionar expedientes ───────────────────────────────
 
-    public function supervisar(): View
+    public function supervisar(Request $request): View
     {
-        $seccion = request('seccion', 'postulantes');
+        $seccion = $request->get('seccion', 'postulantes');
+
+        $gestionActiva = Gestion::where('estado', 'Abierta')->first();
+        $gestionVista  = $gestionActiva ?? Gestion::orderBy('fecha_ini', 'desc')->first();
+        $soloLectura   = $gestionVista && $gestionVista->estado !== 'Abierta';
+
+        // ── Filtros ───────────────────────────────────────────────────────────
+        $buscarCi       = $request->get('buscar_ci');
+        $buscarNombre   = $request->get('buscar_nombre');
+        $buscarApellido = $request->get('buscar_apellido');
+        $estadoFiltro   = $request->get('estado_expediente');
+        $carreraFiltro  = $request->get('carrera');
+        $hayFiltros     = filled($buscarCi) || filled($buscarNombre) || filled($buscarApellido)
+                          || filled($estadoFiltro) || filled($carreraFiltro);
 
         // ── Postulantes ───────────────────────────────────────────────────────
         $requisitosP = requisito::where('tipo', 'P')->orderBy('nombre')->get();
 
-        $postulantes = Postulante::with([
-            'requisitos' => fn($q) => $q->with('requisito')
+        $queryP = Postulante::with([
+            'requisitos'    => fn($q) => $q->with('requisito')
                 ->whereHas('requisito', fn($r) => $r->where('tipo', 'P')),
-        ])->orderBy('apellidos')->get();
+            'inscripciones' => fn($q) => $q
+                ->when($gestionVista, fn($q) => $q->where('idGestion', $gestionVista->idGestion))
+                ->with('carrerasInscritas.carrera')
+                ->latest(),
+        ])->orderBy('apellidos');
+
+        if (filled($buscarCi))       $queryP->where('ci',        'ilike', "%{$buscarCi}%");
+        if (filled($buscarNombre))   $queryP->where('nombre',    'ilike', "%{$buscarNombre}%");
+        if (filled($buscarApellido)) $queryP->where('apellidos', 'ilike', "%{$buscarApellido}%");
+
+        if (filled($estadoFiltro)) {
+            if ($estadoFiltro === 'Faltante') {
+                $queryP->whereDoesntHave('inscripciones', function ($q) use ($gestionVista) {
+                    if ($gestionVista) $q->where('idGestion', $gestionVista->idGestion);
+                });
+            } else {
+                $queryP->whereHas('inscripciones', function ($q) use ($estadoFiltro, $gestionVista) {
+                    $q->where('estado', $estadoFiltro);
+                    if ($gestionVista) $q->where('idGestion', $gestionVista->idGestion);
+                });
+            }
+        }
+
+        if (filled($carreraFiltro)) {
+            $queryP->whereHas('inscripciones', function ($q) use ($carreraFiltro, $gestionVista) {
+                if ($gestionVista) $q->where('idGestion', $gestionVista->idGestion);
+                $q->whereHas('carrerasInscritas', fn($q2) => $q2->where('codCarrera', $carreraFiltro));
+            });
+        }
+
+        $postulantes = $queryP->get();
 
         // ── Docentes ──────────────────────────────────────────────────────────
         $requisitosD = requisito::where('tipo', 'D')->orderBy('nombre')->get();
 
-        $docentes = Docente::with([
+        $queryD = Docente::with([
             'requisitosDocente' => fn($q) => $q->with('requisito')
                 ->whereHas('requisito', fn($r) => $r->where('tipo', 'D')),
-        ])->orderBy('apellido')->get();
+        ])->orderBy('apellido');
+
+        if (filled($buscarCi))       $queryD->where('ci',       'ilike', "%{$buscarCi}%");
+        if (filled($buscarNombre))   $queryD->where('nombre',   'ilike', "%{$buscarNombre}%");
+        if (filled($buscarApellido)) $queryD->where('apellido', 'ilike', "%{$buscarApellido}%");
+
+        if (filled($estadoFiltro)) {
+            $totalObligD = requisito::where('tipo', 'D')->where('obligatorio', true)->count();
+            if ($totalObligD > 0) {
+                if ($estadoFiltro === 'Validado') {
+                    $queryD->whereHas(
+                        'requisitosDocente',
+                        fn($q) => $q->where('validado', true)
+                            ->whereHas('requisito', fn($r) => $r->where('tipo', 'D')->where('obligatorio', true)),
+                        '>=', $totalObligD
+                    );
+                } elseif ($estadoFiltro === 'Faltante') {
+                    $queryD->whereDoesntHave('requisitosDocente');
+                } elseif ($estadoFiltro === 'Pendiente') {
+                    $queryD->whereHas('requisitosDocente', fn($q) => $q->where('validado', false));
+                }
+            }
+        }
+
+        $docentes = $queryD->get();
+        $carreras = Carrera::orderBy('nombre')->get();
 
         return view('admin.expedientes', compact(
-            'seccion',
+            'seccion', 'soloLectura', 'hayFiltros',
+            'gestionActiva', 'gestionVista', 'carreras',
             'requisitosP', 'postulantes',
-            'requisitosD', 'docentes'
+            'requisitosD', 'docentes',
+            'buscarCi', 'buscarNombre', 'buscarApellido', 'estadoFiltro', 'carreraFiltro'
         ));
     }
 

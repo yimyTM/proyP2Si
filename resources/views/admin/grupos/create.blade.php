@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @section('title', 'Nuevo Grupo')
-@section('page-title', 'Crear Nuevo Grupo')
+@section('page-title', 'CU06 – Crear Nuevo Grupo Académico')
 
 @section('content')
 <div class="max-w-3xl mx-auto">

@@ -187,6 +187,9 @@ class poblacionCompleta extends Seeder
         ];
         DB::table('form_academicas')->insert($formAcademicas);
 
+        // ---------------------
+        // 8. Docentes
+        // ---------------------
         $docentes = [
             [
                 'nombre'        => 'Jorge Luis',
@@ -206,7 +209,48 @@ class poblacionCompleta extends Seeder
                 'nroTelefono'   => '76645678',
                 'direccion'     => 'Radial 27 Mz. 5 Casa 3, Santa Cruz',
                 'carga_horaria' => 16,
-                'idUsuario'     => 4,  // usuario docente 2
+                'idUsuario'     => 4,  
+                'created_at'    => now(),
+                'updated_at'    => now(),
+            ],
+            [
+                'nombre'        => 'Jorge Luis',
+                'apellido'      => 'Cauthemoc',
+                'ci'            => '4512809',
+                'nroTelefono'   => '11111111',
+                'direccion'     => 'Plan 3000 La Rotonda, Santa Cruz',
+                'carga_horaria' => 8,
+                'idUsuario'     => 7,
+                'created_at'    => now(),
+                'updated_at'    => now(),
+            ],[
+                'nombre'        => 'Matias',
+                'apellido'      => 'Torrez',
+                'ci'            => '2222222',
+                'nroTelefono'   => '76645678',
+                'direccion'     => 'El Quior',
+                'carga_horaria' => 8,
+                'idUsuario'     => 8,
+                'created_at'    => now(),
+                'updated_at'    => now(),
+            ],[
+                'nombre'        => 'Carlos',
+                'apellido'      => 'Vasquez',
+                'ci'            => '3333333',
+                'nroTelefono'   => '76645678',
+                'direccion'     => '2do Anillo',
+                'carga_horaria' => 16,
+                'idUsuario'     => 9,  // usuario docente 2
+                'created_at'    => now(),
+                'updated_at'    => now(),
+            ],[
+                'nombre'        => 'Ana Lucía',
+                'apellido'      => 'Torrez Blanco',
+                'ci'            => '4444444',
+                'nroTelefono'   => '76645678',
+                'direccion'     => 'Radial 27 Mz. 5 Casa 3, Santa Cruz',
+                'carga_horaria' => 8,
+                'idUsuario'     => 10,
                 'created_at'    => now(),
                 'updated_at'    => now(),
             ],
@@ -277,55 +321,15 @@ class poblacionCompleta extends Seeder
         // 15. HORARIOS
         // =========================================================
         DB::table('horarios')->insert([
-            ['hora_ini' => '07:00:00', 'hora_fin' => '08:30:00', 'dia' => 'Lunes',     'created_at' => now(), 'updated_at' => now()],
-            ['hora_ini' => '08:30:00', 'hora_fin' => '10:00:00', 'dia' => 'Lunes',     'created_at' => now(), 'updated_at' => now()],
-            ['hora_ini' => '10:00:00', 'hora_fin' => '11:30:00', 'dia' => 'Lunes',     'created_at' => now(), 'updated_at' => now()],
-            ['hora_ini' => '14:00:00', 'hora_fin' => '15:30:00', 'dia' => 'Lunes',     'created_at' => now(), 'updated_at' => now()],
-            ['hora_ini' => '15:30:00', 'hora_fin' => '17:00:00', 'dia' => 'Lunes',     'created_at' => now(), 'updated_at' => now()],
-            ['hora_ini' => '17:00:00', 'hora_fin' => '18:30:00', 'dia' => 'Lunes',     'created_at' => now(), 'updated_at' => now()],
-            ['hora_ini' => '18:30:00', 'hora_fin' => '20:00:00', 'dia' => 'Lunes',     'created_at' => now(), 'updated_at' => now()],
-            ['hora_ini' => '20:00:00', 'hora_fin' => '21:30:00', 'dia' => 'Lunes',     'created_at' => now(), 'updated_at' => now()],
-            ['hora_ini' => '21:30:00', 'hora_fin' => '23:00:00', 'dia' => 'Lunes',     'created_at' => now(), 'updated_at' => now()],        
-            
-            ['hora_ini' => '07:00:00', 'hora_fin' => '08:30:00', 'dia' => 'Martes',     'created_at' => now(), 'updated_at' => now()],
-            ['hora_ini' => '08:30:00', 'hora_fin' => '10:00:00', 'dia' => 'Martes',     'created_at' => now(), 'updated_at' => now()],
-            ['hora_ini' => '10:00:00', 'hora_fin' => '11:30:00', 'dia' => 'Martes',     'created_at' => now(), 'updated_at' => now()],
-            ['hora_ini' => '14:00:00', 'hora_fin' => '15:30:00', 'dia' => 'Martes',     'created_at' => now(), 'updated_at' => now()],
-            ['hora_ini' => '15:30:00', 'hora_fin' => '17:00:00', 'dia' => 'Martes',     'created_at' => now(), 'updated_at' => now()],
-            ['hora_ini' => '17:00:00', 'hora_fin' => '18:30:00', 'dia' => 'Martes',     'created_at' => now(), 'updated_at' => now()],
-            ['hora_ini' => '18:30:00', 'hora_fin' => '20:00:00', 'dia' => 'Martes',     'created_at' => now(), 'updated_at' => now()],
-            ['hora_ini' => '20:00:00', 'hora_fin' => '21:30:00', 'dia' => 'Martes',     'created_at' => now(), 'updated_at' => now()],
-            ['hora_ini' => '21:30:00', 'hora_fin' => '23:00:00', 'dia' => 'Martes',     'created_at' => now(), 'updated_at' => now()],
-
-            ['hora_ini' => '07:00:00', 'hora_fin' => '08:30:00', 'dia' => 'Miercoles',     'created_at' => now(), 'updated_at' => now()],
-            ['hora_ini' => '08:30:00', 'hora_fin' => '10:00:00', 'dia' => 'Miercoles',     'created_at' => now(), 'updated_at' => now()],
-            ['hora_ini' => '10:00:00', 'hora_fin' => '11:30:00', 'dia' => 'Miercoles',     'created_at' => now(), 'updated_at' => now()],
-            ['hora_ini' => '14:00:00', 'hora_fin' => '15:30:00', 'dia' => 'Miercoles',     'created_at' => now(), 'updated_at' => now()],
-            ['hora_ini' => '15:30:00', 'hora_fin' => '17:00:00', 'dia' => 'Miercoles',     'created_at' => now(), 'updated_at' => now()],
-            ['hora_ini' => '17:00:00', 'hora_fin' => '18:30:00', 'dia' => 'Miercoles',     'created_at' => now(), 'updated_at' => now()],
-            ['hora_ini' => '18:30:00', 'hora_fin' => '20:00:00', 'dia' => 'Miercoles',     'created_at' => now(), 'updated_at' => now()],
-            ['hora_ini' => '20:00:00', 'hora_fin' => '21:30:00', 'dia' => 'Miercoles',     'created_at' => now(), 'updated_at' => now()],
-            ['hora_ini' => '21:30:00', 'hora_fin' => '23:00:00', 'dia' => 'Miercoles',     'created_at' => now(), 'updated_at' => now()],
-            
-            ['hora_ini' => '07:00:00', 'hora_fin' => '08:30:00', 'dia' => 'Jueves',     'created_at' => now(), 'updated_at' => now()],
-            ['hora_ini' => '08:30:00', 'hora_fin' => '10:00:00', 'dia' => 'Jueves',     'created_at' => now(), 'updated_at' => now()],
-            ['hora_ini' => '10:00:00', 'hora_fin' => '11:30:00', 'dia' => 'Jueves',     'created_at' => now(), 'updated_at' => now()],
-            ['hora_ini' => '14:00:00', 'hora_fin' => '15:30:00', 'dia' => 'Jueves',     'created_at' => now(), 'updated_at' => now()],
-            ['hora_ini' => '15:30:00', 'hora_fin' => '17:00:00', 'dia' => 'Jueves',     'created_at' => now(), 'updated_at' => now()],
-            ['hora_ini' => '17:00:00', 'hora_fin' => '18:30:00', 'dia' => 'Jueves',     'created_at' => now(), 'updated_at' => now()],
-            ['hora_ini' => '18:30:00', 'hora_fin' => '20:00:00', 'dia' => 'Jueves',     'created_at' => now(), 'updated_at' => now()],
-            ['hora_ini' => '20:00:00', 'hora_fin' => '21:30:00', 'dia' => 'Jueves',     'created_at' => now(), 'updated_at' => now()],
-            ['hora_ini' => '21:30:00', 'hora_fin' => '23:00:00', 'dia' => 'Jueves',     'created_at' => now(), 'updated_at' => now()],
-            
-            ['hora_ini' => '07:00:00', 'hora_fin' => '08:30:00', 'dia' => 'Viernes',     'created_at' => now(), 'updated_at' => now()],
-            ['hora_ini' => '08:30:00', 'hora_fin' => '10:00:00', 'dia' => 'Viernes',     'created_at' => now(), 'updated_at' => now()],
-            ['hora_ini' => '10:00:00', 'hora_fin' => '11:30:00', 'dia' => 'Viernes',     'created_at' => now(), 'updated_at' => now()],
-            ['hora_ini' => '14:00:00', 'hora_fin' => '15:30:00', 'dia' => 'Viernes',     'created_at' => now(), 'updated_at' => now()],
-            ['hora_ini' => '15:30:00', 'hora_fin' => '17:00:00', 'dia' => 'Viernes',     'created_at' => now(), 'updated_at' => now()],
-            ['hora_ini' => '17:00:00', 'hora_fin' => '18:30:00', 'dia' => 'Viernes',     'created_at' => now(), 'updated_at' => now()],
-            ['hora_ini' => '18:30:00', 'hora_fin' => '20:00:00', 'dia' => 'Viernes',     'created_at' => now(), 'updated_at' => now()],
-            ['hora_ini' => '20:00:00', 'hora_fin' => '21:30:00', 'dia' => 'Viernes',     'created_at' => now(), 'updated_at' => now()],
-            ['hora_ini' => '21:30:00', 'hora_fin' => '23:00:00', 'dia' => 'Viernes',     'created_at' => now(), 'updated_at' => now()],
+            ['hora_ini' => '07:00:00', 'hora_fin' => '08:30:00', 'dia' => 'Lunes, Martes, Miercoles, Jueves y Viernes',     'created_at' => now(), 'updated_at' => now()],
+            ['hora_ini' => '08:30:00', 'hora_fin' => '10:00:00', 'dia' => 'Lunes, Martes, Miercoles, Jueves y Viernes',     'created_at' => now(), 'updated_at' => now()],
+            ['hora_ini' => '10:00:00', 'hora_fin' => '11:30:00', 'dia' => 'Lunes, Martes, Miercoles, Jueves y Viernes',     'created_at' => now(), 'updated_at' => now()],
+            ['hora_ini' => '14:00:00', 'hora_fin' => '15:30:00', 'dia' => 'Lunes, Martes, Miercoles, Jueves y Viernes',     'created_at' => now(), 'updated_at' => now()],
+            ['hora_ini' => '15:30:00', 'hora_fin' => '17:00:00', 'dia' => 'Lunes, Martes, Miercoles, Jueves y Viernes',     'created_at' => now(), 'updated_at' => now()],
+            ['hora_ini' => '17:00:00', 'hora_fin' => '18:30:00', 'dia' => 'Lunes, Martes, Miercoles, Jueves y Viernes',     'created_at' => now(), 'updated_at' => now()],
+            ['hora_ini' => '18:30:00', 'hora_fin' => '20:00:00', 'dia' => 'Lunes, Martes, Miercoles, Jueves y Viernes',     'created_at' => now(), 'updated_at' => now()],
+            ['hora_ini' => '20:00:00', 'hora_fin' => '21:30:00', 'dia' => 'Lunes, Martes, Miercoles, Jueves y Viernes',     'created_at' => now(), 'updated_at' => now()],
+            ['hora_ini' => '21:30:00', 'hora_fin' => '23:00:00', 'dia' => 'Lunes, Martes, Miercoles, Jueves y Viernes',     'created_at' => now(), 'updated_at' => now()],        
             ]);
 
         // =========================================================

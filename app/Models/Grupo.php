@@ -4,14 +4,19 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Grupo extends Model
 {
     protected $table      = 'grupos';
     protected $primaryKey = 'codigoG';
 
-    protected $fillable = ['capacidad', 'codeModalidad', 'idTurno'];
+    protected $fillable = ['capacidad', 'numero_grupo', 'codeModalidad', 'idTurno', 'idGestion'];
+
+    public function gestion(): BelongsTo
+    {
+        return $this->belongsTo(Gestion::class, 'idGestion', 'idGestion');
+    }
 
     public function modalidad(): BelongsTo
     {
@@ -23,43 +28,13 @@ class Grupo extends Model
         return $this->belongsTo(Turno::class, 'idTurno', 'idTurno');
     }
 
-    public function docentes(): BelongsToMany
+    public function materiGrupos(): HasMany
     {
-        return $this->belongsToMany(
-            Docente::class,
-            'docente__grupos',
-            'codigoG',
-            'codigoDoc'
-        );
+        return $this->hasMany(materi_grupo::class, 'codigoG', 'codigoG');
     }
 
-    public function horarios(): BelongsToMany
+    public function inscripciones(): HasMany
     {
-        return $this->belongsToMany(
-            Horario::class,
-            'grupo__horarios',
-            'codigoG',
-            'idHorario'
-        );
-    }
-
-    public function aulas(): BelongsToMany
-    {
-        return $this->belongsToMany(
-            Aula::class,
-            'grupo__aulas',
-            'codigoG',
-            'idAula'
-        );
-    }
-
-    public function materias(): BelongsToMany
-    {
-        return $this->belongsToMany(
-            Materia::class,
-            'materi_grupos',
-            'codigoG',
-            'idMateria'
-        );
+        return $this->hasMany(Inscripcion::class, 'codigoG', 'codigoG');
     }
 }

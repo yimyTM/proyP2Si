@@ -4,7 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\Aula;
 use App\Models\Docente;
+use App\Models\Gestion;
 use App\Models\Grupo;
+use App\Models\requisito;
 use App\Models\Horario;
 use App\Models\Materia;
 use App\Models\Modalidad;
@@ -13,110 +15,150 @@ use App\Services\BitacoraService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class GrupoController extends Controller
 {
     public function index(): View
     {
-        $grupos = Grupo::with(['modalidad', 'turno', 'horarios', 'aulas', 'materias', 'docentes'])
-            ->orderBy('codigoG', 'desc')
-            ->paginate(15);
+        $gestionActiva = Gestion::where('estado', 'Abierta')->first();
 
-        return view('admin.grupos.index', compact('grupos'));
+        $grupos = Grupo::with([
+            'modalidad', 'turno',
+            'materiGrupos.materia',
+            'materiGrupos.horario',
+            'materiGrupos.aula',
+            'materiGrupos.docente',
+        ])->when($gestionActiva, fn($q) => $q->where('idGestion', $gestionActiva->idGestion))
+          ->orderBy('numero_grupo')
+          ->paginate(20);
+
+        return view('admin.grupos.index', compact('grupos', 'gestionActiva'));
     }
 
-    public function create(): View
+    public function create(): View|RedirectResponse
     {
-        return view('admin.grupos.create', $this->formData());
+        $gestionActiva = Gestion::where('estado', 'Abierta')->first();
+
+        if (! $gestionActiva) {
+            return redirect()->route('admin.grupos.index')
+                ->with('error', 'Debe existir una gestión activa para crear grupos.');
+        }
+
+        return view('admin.grupos.create', array_merge($this->formData(), compact('gestionActiva')));
     }
 
     public function store(Request $request): RedirectResponse
     {
+        $gestionActiva = Gestion::where('estado', 'Abierta')->first();
+
+        if (! $gestionActiva) {
+            return redirect()->route('admin.grupos.index')
+                ->with('error', 'Debe existir una gestión activa para crear grupos.');
+        }
+
         $data = $request->validate([
-            'capacidad'     => ['required', 'integer', 'min:1', 'max:200'],
+            'numero_grupo'  => [
+                'required', 'string', 'max:50',
+                Rule::unique('grupos')->where(fn($q) => $q->where('idGestion', $gestionActiva->idGestion)),
+            ],
+            'capacidad'     => ['required', 'integer', 'min:1', 'max:500'],
             'codeModalidad' => ['required', 'integer', 'exists:modalidads,codeModalidad'],
             'idTurno'       => ['required', 'integer', 'exists:turnos,idTurno'],
-            'idHorario'     => ['nullable', 'integer', 'exists:horarios,idHorario'],
-            'idAula'        => ['nullable', 'integer', 'exists:aulas,idAula'],
-            'idMateria'     => ['nullable', 'integer', 'exists:materias,idMateria'],
-            'codigoDoc'     => ['nullable', 'integer', 'exists:docentes,codigoDoc'],
+        ], [
+            'numero_grupo.unique' => 'Ya existe un grupo con este número en la gestión actual.',
         ]);
 
-        DB::transaction(function () use ($data) {
-            $grupo = Grupo::create([
-                'capacidad'     => $data['capacidad'],
-                'codeModalidad' => $data['codeModalidad'],
-                'idTurno'       => $data['idTurno'],
-            ]);
+        Grupo::create([
+            'numero_grupo'  => $data['numero_grupo'],
+            'capacidad'     => $data['capacidad'],
+            'codeModalidad' => $data['codeModalidad'],
+            'idTurno'       => $data['idTurno'],
+            'idGestion'     => $gestionActiva->idGestion,
+        ]);
 
-            if (! empty($data['idHorario']))  { $grupo->horarios()->sync([$data['idHorario']]); }
-            if (! empty($data['idAula']))     { $grupo->aulas()->sync([$data['idAula']]); }
-            if (! empty($data['idMateria']))  { $grupo->materias()->sync([$data['idMateria']]); }
-            if (! empty($data['codigoDoc'])) { $grupo->docentes()->sync([$data['codigoDoc']]); }
-        });
+        BitacoraService::registrar("CU06: Grupo «{$data['numero_grupo']}» creado en gestión {$gestionActiva->idGestion}.");
 
-        BitacoraService::registrar("Grupo creado manualmente (cap. {$data['capacidad']}).");
-
-        return redirect()->route('admin.grupos.index')->with('success', 'Grupo creado correctamente.');
+        return redirect()->route('admin.grupos.index')
+            ->with('success', "Grupo «{$data['numero_grupo']}» creado correctamente.");
     }
 
     public function edit(Grupo $grupo): View
     {
-        $grupo->load(['horarios', 'aulas', 'materias', 'docentes']);
+        $grupo->load(['materiGrupos.materia', 'materiGrupos.horario', 'materiGrupos.aula', 'materiGrupos.docente']);
+
+        $totalRequisitosD = requisito::where('tipo', 'D')->where('obligatorio', true)->count();
+
+        $docentesHabilitados = $totalRequisitosD > 0
+            ? Docente::whereHas('requisitosDocente', function ($q) {
+                $q->where('validado', true)
+                  ->whereHas('requisito', fn($r) => $r->where('tipo', 'D')->where('obligatorio', true));
+            }, '>=', $totalRequisitosD)->orderBy('apellido')->get()
+            : Docente::orderBy('apellido')->get();
 
         return view('admin.grupos.edit', array_merge($this->formData(), [
-            'grupo'         => $grupo,
-            'horarioActual' => $grupo->horarios->first()?->idHorario,
-            'aulaActual'    => $grupo->aulas->first()?->idAula,
-            'materiaActual' => $grupo->materias->first()?->idMateria,
-            'docenteActual' => $grupo->docentes->first()?->codigoDoc,
+            'grupo'               => $grupo,
+            'docentesHabilitados' => $docentesHabilitados,
         ]));
     }
 
     public function update(Request $request, Grupo $grupo): RedirectResponse
     {
         $data = $request->validate([
-            'capacidad'     => ['required', 'integer', 'min:1', 'max:200'],
+            'numero_grupo'  => [
+                'required', 'string', 'max:50',
+                Rule::unique('grupos')
+                    ->where(fn($q) => $q->where('idGestion', $grupo->idGestion))
+                    ->ignore($grupo->codigoG, 'codigoG'),
+            ],
+            'capacidad'     => ['required', 'integer', 'min:1', 'max:500'],
             'codeModalidad' => ['required', 'integer', 'exists:modalidads,codeModalidad'],
             'idTurno'       => ['required', 'integer', 'exists:turnos,idTurno'],
-            'idHorario'     => ['nullable', 'integer', 'exists:horarios,idHorario'],
-            'idAula'        => ['nullable', 'integer', 'exists:aulas,idAula'],
-            'idMateria'     => ['nullable', 'integer', 'exists:materias,idMateria'],
-            'codigoDoc'     => ['nullable', 'integer', 'exists:docentes,codigoDoc'],
+        ], [
+            'numero_grupo.unique' => 'Ya existe un grupo con este número en la gestión actual.',
         ]);
 
-        DB::transaction(function () use ($data, $grupo) {
-            $grupo->update([
-                'capacidad'     => $data['capacidad'],
-                'codeModalidad' => $data['codeModalidad'],
-                'idTurno'       => $data['idTurno'],
-            ]);
+        if (! empty($data['idAula'])) {
+            $aula = Aula::find($data['idAula']);
+            if ($aula && $data['capacidad'] > $aula->capacidad) {
+                return back()->withInput()->withErrors([
+                    'capacidad' => "La capacidad ingresada ({$data['capacidad']}) supera la capacidad máxima del aula seleccionada ({$aula->capacidad} cupos).",
+                ]);
+            }
+        }
 
-            $grupo->horarios()->sync(! empty($data['idHorario']) ? [$data['idHorario']] : []);
-            $grupo->aulas()->sync(! empty($data['idAula'])       ? [$data['idAula']]    : []);
-            $grupo->materias()->sync(! empty($data['idMateria']) ? [$data['idMateria']] : []);
-            $grupo->docentes()->sync(! empty($data['codigoDoc']) ? [$data['codigoDoc']] : []);
-        });
+        $grupo->update([
+            'numero_grupo'  => $data['numero_grupo'],
+            'capacidad'     => $data['capacidad'],
+            'codeModalidad' => $data['codeModalidad'],
+            'idTurno'       => $data['idTurno'],
+        ]);
 
-        BitacoraService::registrar("Grupo #{$grupo->codigoG} actualizado.");
+        BitacoraService::registrar("CU06: Grupo «{$grupo->numero_grupo}» (#{$grupo->codigoG}) actualizado.");
 
         return redirect()->route('admin.grupos.index')
-            ->with('success', "Grupo #{$grupo->codigoG} actualizado correctamente.");
+            ->with('success', "Grupo «{$grupo->numero_grupo}» actualizado correctamente.");
     }
 
     public function destroy(Grupo $grupo): RedirectResponse
     {
-        $id = $grupo->codigoG;
+        if ($grupo->inscripciones()->exists()) {
+            return back()->with('error', 'No es posible eliminar un grupo con alumnos registrados.');
+        }
+
+        $nombre = $grupo->numero_grupo;
         $grupo->delete();
-        BitacoraService::registrar("Grupo #{$id} eliminado.");
-        return redirect()->route('admin.grupos.index')->with('success', "Grupo #{$id} eliminado.");
+        BitacoraService::registrar("CU06: Grupo «{$nombre}» eliminado.");
+
+        return redirect()->route('admin.grupos.index')
+            ->with('success', "Grupo «{$nombre}» eliminado correctamente.");
     }
 
     // ── Apertura automática (conservada para compatibilidad, ya no en sidebar) ─
     public function apertura(): View
     {
-        $gestiones = \App\Models\Gestion::orderBy('fecha_ini', 'desc')->get();
+        $gestiones = Gestion::orderBy('fecha_ini', 'desc')->get();
         $turnos    = Turno::all();
         return view('admin.apertura_grupos', compact('gestiones', 'turnos'));
     }

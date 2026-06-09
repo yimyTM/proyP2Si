@@ -8,24 +8,9 @@ use App\Models\Rol;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 
-/**
- * Genera cuentas de usuario provisionales con contraseñas seguras.
- * Usado por CU02 (carga masiva de personal) y CU03 (habilitación de postulante).
- *
- * ─── Reglas de la contraseña generada ───────────────────────────────────────
- *  • Mínimo 8 caracteres
- *  • Al menos 1 mayúscula
- *  • Al menos 1 minúscula
- *  • Al menos 1 dígito
- *  • Al menos 1 carácter especial (!@#$%)
- */
 class CuentaProvisionaService
 {
-    /**
-     * Genera una contraseña aleatoria que cumple todos los requisitos de seguridad.
-     * Método: garantiza un carácter de cada tipo requerido, luego rellena
-     * con caracteres aleatorios del pool completo y mezcla el resultado.
-     */
+
     public static function generarPassword(): string
     {
         $mayusculas = 'ABCDEFGHJKLMNPQRSTUVWXYZ';   // sin I/O confundibles con 0/1
@@ -133,6 +118,34 @@ class CuentaProvisionaService
         }
 
         return self::crearCuentaPostulante($postulante);
+    }
+
+    /**
+     * Crea una cuenta User para Coordinador o Autoridades (sin registro en docentes).
+     * Devuelve la contraseña en texto plano.
+     */
+    public static function crearCuentaPersonal(
+        string $nombre,
+        string $apellido,
+        string $ci,
+        string $correo,
+        string $telefono,
+        string $rolNombre
+    ): string {
+        $password = self::generarPassword();
+        $rol      = Rol::where('nombre_Rol', $rolNombre)->firstOrFail();
+
+        User::create([
+            'nombreCompleto' => "{$nombre} {$apellido}",
+            'ci'             => $ci,
+            'correo'         => $correo,
+            'telefono'       => $telefono,
+            'password'       => Hash::make($password),
+            'idRol'          => $rol->idRol,
+            'estado'         => true,
+        ]);
+
+        return $password;
     }
 
     /**

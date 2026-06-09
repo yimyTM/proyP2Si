@@ -17,15 +17,21 @@
     </div>
 
     <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-        <p class="text-xs text-gray-400 uppercase tracking-wider mb-3">Próximos pasos</p>
-        <ul class="space-y-2 text-sm text-gray-700">
-            <li class="flex items-center gap-2 text-gray-400">
-                <span class="w-2 h-2 rounded-full bg-gray-300"></span>
-                CU03 – Verificar estado de pago (próximo)
+        <p class="text-xs text-gray-400 uppercase tracking-wider mb-3">Accesos rápidos</p>
+        <ul class="space-y-2 text-sm">
+            <li>
+                <a href="{{ route('verificar-pago') }}"
+                   class="flex items-center gap-2 text-[#283342] hover:underline font-medium">
+                    <span class="w-2 h-2 rounded-full bg-[#283342]"></span>
+                    CU03 – Verificar estado de pago
+                </a>
             </li>
-            <li class="flex items-center gap-2 text-gray-400">
-                <span class="w-2 h-2 rounded-full bg-gray-300"></span>
-                CU04 – Gestionar expediente digital (próximo)
+            <li>
+                <a href="{{ route('postulante.expediente') }}"
+                   class="flex items-center gap-2 text-[#283342] hover:underline font-medium">
+                    <span class="w-2 h-2 rounded-full bg-[#283342]"></span>
+                    CU05 – Registrar expediente digital
+                </a>
             </li>
         </ul>
     </div>

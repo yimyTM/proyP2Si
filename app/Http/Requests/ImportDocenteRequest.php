@@ -14,15 +14,15 @@ class ImportDocenteRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'archivo' => ['required', 'file', 'mimes:csv,txt', 'max:5120'],
+            'archivo' => ['required', 'file', 'mimes:csv,txt,xlsx,ods', 'max:5120'],
         ];
     }
 
     public function messages(): array
     {
         return [
-            'archivo.required' => 'Debe seleccionar un archivo CSV.',
-            'archivo.mimes'    => 'El archivo debe ser formato CSV (.csv).',
+            'archivo.required' => 'Debe seleccionar un archivo.',
+            'archivo.mimes'    => 'Formato no permitido. Use CSV o Excel.',
             'archivo.max'      => 'El archivo no debe superar los 5 MB.',
         ];
     }

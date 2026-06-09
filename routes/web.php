@@ -10,6 +10,7 @@ use App\Http\Controllers\DocenteController;
 use App\Http\Controllers\DocenteGrupoController;
 use App\Http\Controllers\GrupoController;
 use App\Http\Controllers\InscripcionController;
+use App\Http\Controllers\MateriGrupoController;
 use App\Http\Controllers\PagoController;
 use App\Http\Controllers\PostulanteController;
 use App\Http\Controllers\RequisitoPostulanteController;
@@ -78,19 +79,25 @@ Route::middleware(['auth', 'role:Administrador,Autoridades,Coordinador'])
             ->except(['show'])
             ->parameters(['gestiones' => 'gestion']);
 
-        // CU04 (Admin) – Supervisión de expedientes
+        // CU05 (Admin) – Supervisión y validación de expedientes
         Route::get('/expedientes', [RequisitoPostulanteController::class, 'supervisar'])->name('expedientes');
         Route::post('/expedientes/postulante/{postulante}/{requisito}', [RequisitoPostulanteController::class, 'estadoPostulante'])->name('expedientes.postulante.estado');
         Route::post('/expedientes/docente/{docente}/{requisito}',       [RequisitoPostulanteController::class, 'estadoDocente'])->name('expedientes.docente.estado');
+        Route::patch('/expedientes/{inscripcion}/validar',  [InscripcionController::class, 'validarAdmin'])->name('expedientes.validar');
+        Route::patch('/expedientes/{inscripcion}/rechazar', [InscripcionController::class, 'rechazarAdmin'])->name('expedientes.rechazar');
 
         // CU05 – Búsqueda y gestión de postulantes
         Route::get('/estudiantes', [PostulanteController::class, 'buscar'])->name('estudiantes');
         Route::resource('postulantes', PostulanteController::class)->except(['index']);
 
-        // CRUD Grupos (manual)
+        // CU06 – CRUD Grupos (manual)
         Route::resource('grupos', GrupoController::class)
             ->parameters(['grupos' => 'grupo'])
             ->except(['show']);
+
+        // CU07 – Asignación logística (materia/horario/aula/docente por grupo)
+        Route::post('/grupos/{grupo}/materias',             [MateriGrupoController::class, 'store'])->name('grupos.materias.store');
+        Route::delete('/grupos/{grupo}/materias/{materia}', [MateriGrupoController::class, 'destroy'])->name('grupos.materias.destroy');
 
         // CU10 – Asignación docente y carga logística
         Route::get('/asignacion-docente',  [DocenteGrupoController::class, 'asignacion'])->name('asignacion-docente');
