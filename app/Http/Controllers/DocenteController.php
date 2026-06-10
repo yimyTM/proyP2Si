@@ -5,12 +5,16 @@ namespace App\Http\Controllers;
 use App\Http\Requests\DocenteRequest;
 use App\Http\Requests\ImportDocenteRequest;
 use App\Models\Docente;
+use App\Models\Form_Academica;
+use App\Models\Gestion;
+use App\Models\requisito;
 use App\Models\User;
 use App\Services\BitacoraService;
 use App\Services\CuentaProvisionaService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 class DocenteController extends Controller
@@ -45,32 +49,128 @@ class DocenteController extends Controller
 
     public function create(): View
     {
-        return view('admin.docentes.create');
+        $formaciones    = Form_Academica::orderBy('nombProfesion')->get();
+        $requisitosDoc  = requisito::where('tipo', 'D')->orderBy('idReq')->get();
+        $gestionActiva  = Gestion::where('estado', 'Abierta')->first();
+
+        return view('admin.docentes.create', compact('formaciones', 'requisitosDoc', 'gestionActiva'));
     }
 
+    /**
+     * CU15 — Registrar docente con su formación académica y requisitos documentales.
+     * NO crea cuenta de acceso ni contrato: ambos son pasos posteriores.
+     */
     public function store(DocenteRequest $request): RedirectResponse
     {
-        $docente = Docente::create($request->validated());
+        // El correo NO se almacena aquí: la tabla docentes no tiene esa columna
+        // y la cuenta se crea recién cuando el docente es contratado.
+        $datos = collect($request->validated())
+            ->only(['nombre', 'apellido', 'ci', 'nroTelefono', 'direccion', 'carga_horaria'])
+            ->toArray();
 
-        $passwordPlano = CuentaProvisionaService::sincronizarCuentaDocente($docente);
+        $docente = DB::transaction(function () use ($request, $datos) {
+            $docente = Docente::create($datos);
 
-        BitacoraService::registrar("Docente creado: {$docente->nombre_completo} (CI: {$docente->ci})");
+            // ── Formación académica ────────────────────────────────────────────
+            // Formaciones existentes seleccionadas
+            $idsFormacion = array_filter((array) $request->input('formaciones', []));
 
-        $mensaje = 'Docente registrado correctamente.';
-        if ($passwordPlano) {
-            $mensaje .= " Contraseña provisional: {$passwordPlano}";
-        }
+            // Formaciones nuevas (profesiones que el admin escribe en el formulario)
+            foreach ((array) $request->input('nuevas_profesiones', []) as $prof) {
+                $nombre = trim((string) ($prof['nombProfesion'] ?? ''));
+                if ($nombre === '') {
+                    continue;
+                }
+                $nueva = Form_Academica::create([
+                    'nroProfesion'  => trim((string) ($prof['nroProfesion'] ?? '')) ?: null,
+                    'nombProfesion' => $nombre,
+                ]);
+                $idsFormacion[] = $nueva->idForm;
+            }
+
+            if (! empty($idsFormacion)) {
+                $docente->formAcademicas()->sync(array_unique($idsFormacion));
+            }
+
+            // ── Requisitos documentales ────────────────────────────────────────
+            foreach ((array) $request->input('requisitos', []) as $idReq => $datosReq) {
+                $entregado = ! empty($datosReq['entregado']);
+                $validado  = ! empty($datosReq['validado']);
+
+                // Solo registramos el requisito si fue al menos entregado o validado.
+                if (! $entregado && ! $validado) {
+                    continue;
+                }
+
+                $docente->requisitosDocente()->create([
+                    'idReq'         => $idReq,
+                    'entregado'     => $entregado,
+                    'validado'      => $validado,
+                    'fecha_entrega' => $entregado ? ($datosReq['fecha_entrega'] ?? now()->toDateString()) : null,
+                ]);
+            }
+
+            return $docente;
+        });
+
+        BitacoraService::registrar("Docente registrado (CU15): {$docente->nombre_completo} (CI: {$docente->ci})");
 
         return redirect()
             ->route('admin.docentes.show', $docente)
-            ->with('success', $mensaje);
+            ->with('success', 'Docente registrado correctamente. Valide los requisitos y proceda a contratarlo.');
     }
 
     public function show(Docente $docente): View
     {
-        $docente->load(['usuario', 'grupos.turno', 'grupos.modalidad']);
+        $docente->load([
+            'usuario',
+            'grupos.turno',
+            'grupos.modalidad',
+            'formAcademicas',
+            'requisitosDocente.requisito',
+        ]);
 
-        return view('admin.docentes.show', compact('docente'));
+        $gestionActiva = Gestion::where('estado', 'Abierta')->first();
+
+        $contratado = $gestionActiva
+            ? $docente->estaContratadoEn($gestionActiva->idGestion)
+            : false;
+
+        $requisitosOk = $docente->tieneRequisitosValidados();
+
+        return view('admin.docentes.show', compact('docente', 'gestionActiva', 'contratado', 'requisitosOk'));
+    }
+
+    /**
+     * CU15 — Contratar al docente para la gestión activa.
+     * Requiere gestión abierta y todos los requisitos documentales validados.
+     */
+    public function contratar(Docente $docente): RedirectResponse
+    {
+        $gestionActiva = Gestion::where('estado', 'Abierta')->first();
+
+        if (! $gestionActiva) {
+            return back()->with('error', 'No hay una gestión académica abierta para contratar.');
+        }
+
+        if ($docente->estaContratadoEn($gestionActiva->idGestion)) {
+            return back()->with('error', 'El docente ya está contratado en la gestión activa.');
+        }
+
+        if (! $docente->tieneRequisitosValidados()) {
+            return back()->with('error', 'No se puede contratar: faltan requisitos documentales por validar.');
+        }
+
+        $docente->gestiones()->attach($gestionActiva->idGestion, [
+            'fecha_contrato' => now()->toDateString(),
+            'estado'         => 'Contratado',
+        ]);
+
+        BitacoraService::registrar(
+            "Docente contratado: {$docente->nombre_completo} para {$gestionActiva->nombre}."
+        );
+
+        return back()->with('success', "Docente contratado para «{$gestionActiva->nombre}». Ahora puede crear su cuenta de acceso.");
     }
 
     public function edit(Docente $docente): View
@@ -80,20 +180,25 @@ class DocenteController extends Controller
 
     public function update(DocenteRequest $request, Docente $docente): RedirectResponse
     {
-        $docente->update($request->validated());
+        $datos = collect($request->validated())
+            ->only(['nombre', 'apellido', 'ci', 'nroTelefono', 'direccion', 'carga_horaria'])
+            ->toArray();
 
-        $passwordPlano = CuentaProvisionaService::sincronizarCuentaDocente($docente);
+        $docente->update($datos);
+
+        // Si ya tiene cuenta, mantener sincronizado el nombre y teléfono del User.
+        if ($docente->usuario) {
+            $docente->usuario->update([
+                'nombreCompleto' => $docente->nombre_completo,
+                'telefono'       => $docente->nroTelefono,
+            ]);
+        }
 
         BitacoraService::registrar("Docente actualizado: {$docente->nombre_completo} (CI: {$docente->ci})");
 
-        $mensaje = 'Docente actualizado correctamente.';
-        if ($passwordPlano) {
-            $mensaje .= " Cuenta creada. Contraseña provisional: {$passwordPlano}";
-        }
-
         return redirect()
             ->route('admin.docentes.show', $docente)
-            ->with('success', $mensaje);
+            ->with('success', 'Docente actualizado correctamente.');
     }
 
     public function destroy(Docente $docente): RedirectResponse
@@ -114,34 +219,44 @@ class DocenteController extends Controller
             ->with('success', 'Docente eliminado correctamente.');
     }
 
-    /** Crea cuenta o restablece contraseña para docentes con correo. */
-    public function provisionarCuenta(Docente $docente): RedirectResponse
+    /**
+     * CU15 — Crea la cuenta de acceso del docente (o restablece su contraseña).
+     * Solo disponible si el docente ya fue contratado en la gestión activa.
+     * El correo se recibe aquí porque la tabla docentes no lo almacena.
+     */
+    public function provisionarCuenta(Request $request, Docente $docente): RedirectResponse
     {
-        if (! $docente->correo) {
-            return back()->with('error', 'El docente no tiene correo registrado.');
+        $teniaCuenta = (bool) $docente->usuario;
+
+        // Gate: debe estar contratado en la gestión activa antes de tener acceso.
+        if (! $teniaCuenta) {
+            $gestionActiva = Gestion::where('estado', 'Abierta')->first();
+            if (! $gestionActiva || ! $docente->estaContratadoEn($gestionActiva->idGestion)) {
+                return back()->with('error', 'Debe contratar al docente antes de crear su cuenta de acceso.');
+            }
         }
 
-        $query = User::where('correo', $docente->correo);
-        if ($docente->idUsuario) {
-            $query->where('idUsuario', '!=', $docente->idUsuario);
+        // Restablecer contraseña de una cuenta existente (no requiere correo nuevo).
+        if ($teniaCuenta) {
+            $password = CuentaProvisionaService::provisionarCuentaDocente($docente);
+            BitacoraService::registrar("Contraseña restablecida para docente {$docente->nombre_completo} ({$docente->usuario->correo}).");
+
+            return back()->with('success', "Contraseña restablecida: {$password}");
         }
-        if ($query->exists()) {
-            return back()->with('error', 'Ese correo ya está en uso por otro usuario.');
-        }
 
-        $teniaCuenta     = (bool) $docente->usuario;
-        $passwordPlano   = CuentaProvisionaService::provisionarCuentaDocente($docente);
+        // Crear cuenta nueva: se necesita un correo válido y único.
+        $request->validate([
+            'correo' => ['required', 'email', 'max:100', 'unique:users,correo'],
+        ], [
+            'correo.required' => 'Ingrese el correo para crear la cuenta.',
+            'correo.unique'   => 'Ese correo ya está en uso por otro usuario.',
+        ]);
 
-        BitacoraService::registrar(
-            ($teniaCuenta ? 'Contraseña restablecida' : 'Cuenta creada') .
-            " para docente {$docente->nombre_completo} ({$docente->correo})."
-        );
+        $password = CuentaProvisionaService::crearCuentaDocente($docente, $request->input('correo'));
 
-        $mensaje = $teniaCuenta
-            ? "Contraseña restablecida: {$passwordPlano}"
-            : "Cuenta creada. Contraseña provisional: {$passwordPlano}";
+        BitacoraService::registrar("Cuenta creada para docente {$docente->nombre_completo} ({$request->input('correo')}).");
 
-        return back()->with('success', $mensaje);
+        return back()->with('success', "Cuenta creada. Correo: {$request->input('correo')} — Contraseña provisional: {$password}");
     }
 
     // ── CU04: Importación masiva de usuarios ─────────────────────────────────

@@ -70,7 +70,7 @@
                     <tr class="hover:bg-gray-50">
                         <td class="px-6 py-3">
                             <p class="font-medium text-gray-800">{{ $docente->nombre_completo }}</p>
-                            <p class="text-xs text-gray-400">{{ $docente->correo ?? 'Sin correo' }}</p>
+                            <p class="text-xs text-gray-400">{{ $docente->usuario?->correo ?? 'Sin cuenta' }}</p>
                         </td>
                         <td class="px-6 py-3 text-gray-600">{{ $docente->ci }}</td>
                         <td class="px-6 py-3 text-gray-600">{{ $docente->nroTelefono ?? '—' }}</td>
@@ -88,9 +88,7 @@
                                    class="text-xs text-blue-600 hover:underline">Ver</a>
                                 <a href="{{ route('admin.docentes.edit', $docente) }}"
                                    class="text-xs text-amber-600 hover:underline">Editar</a>
-                                @if($docente->correo)
-                                    @include('admin.docentes._cuenta', ['docente' => $docente])
-                                @endif
+                                @include('admin.docentes._cuenta', ['docente' => $docente])
                                 <form method="POST" action="{{ route('admin.docentes.destroy', $docente) }}"
                                       onsubmit="return confirm('¿Eliminar a {{ $docente->nombre_completo }}?')">
                                     @csrf @method('DELETE')

@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('inscripcions', function (Blueprint $table) {
             $table->id('idInscripcion');
             $table->date('fecha');
-            $table->string('estado', 20)->default('activa');
+            $table->string('estado', 20)->default('No ingresa');
             $table->foreignId('idPost')
                   ->constrained('postulantes', 'idPost')
                   ->onDelete('cascade');

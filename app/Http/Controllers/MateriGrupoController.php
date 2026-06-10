@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Docente;
 use App\Models\Grupo;
 use App\Models\Materia;
 use App\Models\materi_grupo;
@@ -23,6 +24,14 @@ class MateriGrupoController extends Controller
         ], [
             'idHorario.required' => 'El campo horario es obligatorio para activar el grupo.',
         ]);
+
+        // ── Docente debe estar contratado en la gestión del grupo (CU15) ──────
+        $docente = Docente::find($data['codigoDoc']);
+        if (! $docente || ! $docente->estaContratadoEn($grupo->idGestion)) {
+            return back()->withInput()->withErrors([
+                'codigoDoc' => 'El docente no ha sido contratado para esta gestión y no puede asignarse.',
+            ]);
+        }
 
         // ── Materia ya asignada en este grupo ─────────────────────────────────
         $yaExiste = DB::table('materi_grupos')

@@ -15,13 +15,55 @@ class poblacionCompleta extends Seeder
         // 1. PERMISOS
         // =========================================================
         $permisos = [
-            ['nombrePermiso' => 'ver',      'created_at' => now(), 'updated_at' => now()], // id=1
-            ['nombrePermiso' => 'crear',    'created_at' => now(), 'updated_at' => now()], // id=2
-            ['nombrePermiso' => 'editar',   'created_at' => now(), 'updated_at' => now()], // id=3
-            ['nombrePermiso' => 'eliminar', 'created_at' => now(), 'updated_at' => now()], // id=4
-            ['nombrePermiso' => 'exportar', 'created_at' => now(), 'updated_at' => now()], // id=5
-        ];
-        DB::table('permisos')->insert($permisos);
+    // --- Autenticación ---
+    ['nombrePermiso' => 'iniciar_sesion',           'created_at' => now(), 'updated_at' => now()], // id=1
+    ['nombrePermiso' => 'cerrar_sesion',            'created_at' => now(), 'updated_at' => now()], // id=2
+    ['nombrePermiso' => 'recuperar_contrasena',     'created_at' => now(), 'updated_at' => now()], // id=3
+
+    // --- Postulantes ---
+    ['nombrePermiso' => 'ver_postulantes',          'created_at' => now(), 'updated_at' => now()], // id=4
+    ['nombrePermiso' => 'registrar_postulante',     'created_at' => now(), 'updated_at' => now()], // id=5
+    ['nombrePermiso' => 'editar_postulante',        'created_at' => now(), 'updated_at' => now()], // id=6
+    ['nombrePermiso' => 'eliminar_postulante',      'created_at' => now(), 'updated_at' => now()], // id=7
+    ['nombrePermiso' => 'buscar_postulante',        'created_at' => now(), 'updated_at' => now()], // id=8
+
+    // --- Inscripción / Pago ---
+    ['nombrePermiso' => 'realizar_pago',            'created_at' => now(), 'updated_at' => now()], // id=9
+    ['nombrePermiso' => 'ver_inscripcion',          'created_at' => now(), 'updated_at' => now()], // id=10
+    ['nombrePermiso' => 'gestionar_inscripciones',  'created_at' => now(), 'updated_at' => now()], // id=11
+
+    // --- Exámenes / Notas ---
+    ['nombrePermiso' => 'registrar_notas',          'created_at' => now(), 'updated_at' => now()], // id=12
+    ['nombrePermiso' => 'editar_notas',             'created_at' => now(), 'updated_at' => now()], // id=13
+    ['nombrePermiso' => 'ver_notas',                'created_at' => now(), 'updated_at' => now()], // id=14
+    ['nombrePermiso' => 'ver_resultado_propio',     'created_at' => now(), 'updated_at' => now()], // id=15
+
+    // --- Grupos ---
+    ['nombrePermiso' => 'ver_grupos',               'created_at' => now(), 'updated_at' => now()], // id=16
+    ['nombrePermiso' => 'gestionar_grupos',         'created_at' => now(), 'updated_at' => now()], // id=17
+    ['nombrePermiso' => 'asignar_estudiante_grupo', 'created_at' => now(), 'updated_at' => now()], // id=18
+
+    // --- Docentes ---
+    ['nombrePermiso' => 'ver_docentes',             'created_at' => now(), 'updated_at' => now()], // id=19
+    ['nombrePermiso' => 'gestionar_docentes',       'created_at' => now(), 'updated_at' => now()], // id=20
+    ['nombrePermiso' => 'asignar_docente_grupo',    'created_at' => now(), 'updated_at' => now()], // id=21
+    ['nombrePermiso' => 'ver_carga_horaria',        'created_at' => now(), 'updated_at' => now()], // id=22
+    ['nombrePermiso' => 'registrar_asistencia',     'created_at' => now(), 'updated_at' => now()], // id=23
+
+    // --- Reportes ---
+    ['nombrePermiso' => 'ver_reportes',             'created_at' => now(), 'updated_at' => now()], // id=24
+    ['nombrePermiso' => 'generar_reportes',         'created_at' => now(), 'updated_at' => now()], // id=25
+    ['nombrePermiso' => 'exportar_reportes',        'created_at' => now(), 'updated_at' => now()], // id=26
+
+    // --- Dashboard ---
+    ['nombrePermiso' => 'ver_dashboard',            'created_at' => now(), 'updated_at' => now()], // id=27
+
+    // --- Usuarios ---
+    ['nombrePermiso' => 'gestionar_usuarios',       'created_at' => now(), 'updated_at' => now()], // id=28
+    ['nombrePermiso' => 'importar_usuarios_csv',    'created_at' => now(), 'updated_at' => now()], // id=29
+    ['nombrePermiso' => 'ver_perfil',               'created_at' => now(), 'updated_at' => now()], // id=30
+];
+DB::table('permisos')->insert($permisos);
 
         // =========================================================
         // 2. ROLES
@@ -37,25 +79,32 @@ class poblacionCompleta extends Seeder
 
         $rolPermisos = [];
 
-        foreach ([1, 2, 3, 4, 5] as $p) {
-            $rolPermisos[] = ['idRol' => 1, 'idPermiso' => $p, 'created_at' => now(), 'updated_at' => now()];
-        }
+// ADMINISTRADOR — acceso total (todos los permisos)
+foreach (range(1, 30) as $p) {
+    $rolPermisos[] = ['idRol' => 1, 'idPermiso' => $p, 'created_at' => now(), 'updated_at' => now()];
+}
 
-        foreach ([1, 2, 3, 5] as $p) {
-            $rolPermisos[] = ['idRol' => 2, 'idPermiso' => $p, 'created_at' => now(), 'updated_at' => now()];
-        }
+// AUTORIDADES — solo lectura: dashboard, reportes, grupos, docentes, postulantes
+foreach ([1, 2, 4, 8, 14, 16, 19, 22, 24, 25, 26, 27, 30] as $p) {
+    $rolPermisos[] = ['idRol' => 2, 'idPermiso' => $p, 'created_at' => now(), 'updated_at' => now()];
+}
 
-        foreach ([1, 2, 3] as $p) {
-            $rolPermisos[] = ['idRol' => 3, 'idPermiso' => $p, 'created_at' => now(), 'updated_at' => now()];
-        }
+// COORDINADOR — gestión académica completa, sin eliminar usuarios ni importar CSV
+foreach ([1, 2, 4, 5, 6, 7, 8, 10, 11, 12, 13, 14, 16, 17, 18, 19, 20, 21, 22, 24, 25, 26, 27, 30] as $p) {
+    $rolPermisos[] = ['idRol' => 3, 'idPermiso' => $p, 'created_at' => now(), 'updated_at' => now()];
+}
 
-        foreach ([1, 3] as $p) {
-            $rolPermisos[] = ['idRol' => 4, 'idPermiso' => $p, 'created_at' => now(), 'updated_at' => now()];
-        }
+// DOCENTE — solo su carga horaria, registrar notas/asistencia, ver perfil
+foreach ([1, 2, 12, 13, 14, 22, 23, 30] as $p) {
+    $rolPermisos[] = ['idRol' => 4, 'idPermiso' => $p, 'created_at' => now(), 'updated_at' => now()];
+}
 
-        $rolPermisos[] = ['idRol' => 5, 'idPermiso' => 1, 'created_at' => now(), 'updated_at' => now()];
+// POSTULANTE — ver su perfil, realizar pago, ver su inscripción y resultados
+foreach ([1, 2, 3, 9, 10, 15, 30] as $p) {
+    $rolPermisos[] = ['idRol' => 5, 'idPermiso' => $p, 'created_at' => now(), 'updated_at' => now()];
+}
 
-        DB::table('rol_permisos')->insert($rolPermisos);
+DB::table('rol_permisos')->insert($rolPermisos);
 
         // =========================================================
         // 5. USERS
@@ -63,10 +112,10 @@ class poblacionCompleta extends Seeder
         $users = [
             // Administrador
             [
-                'nombreCompleto'   => 'Carlos Alberto Mendoza Vaca',
+                'nombreCompleto'   => 'Yimy Tarqui Mamani',
                 'ci'               => '1234567',
                 'telefono'         => '77712345',
-                'correo'           => 'yimyt771p@gmail.com',
+                'correo'           => 'yimyt771@gmail.com',
                 'password'         => Hash::make('tarqui231A@'),
                 'idRol'            => 1,
                 'estado'           => true,
@@ -120,7 +169,6 @@ class poblacionCompleta extends Seeder
                 'created_at'       => now(),
                 'updated_at'       => now(),
             ],
-            // Postulantes (usuarios)
             [
                 'nombreCompleto'   => 'Diego Ramiro Flores Aguilar',
                 'ci'               => '5678901',
@@ -203,47 +251,6 @@ class poblacionCompleta extends Seeder
                 'created_at'    => now(),
                 'updated_at'    => now(),
             ],
-            [
-                'nombre'        => 'Jorge Luis',
-                'apellido'      => 'Cauthemoc',
-                'ci'            => '4512809',
-                'nroTelefono'   => '11111111',
-                'direccion'     => 'Plan 3000 La Rotonda, Santa Cruz',
-                'carga_horaria' => 8,
-                'idUsuario'     => 7,
-                'created_at'    => now(),
-                'updated_at'    => now(),
-            ],[
-                'nombre'        => 'Matias',
-                'apellido'      => 'Torrez',
-                'ci'            => '2222222',
-                'nroTelefono'   => '76645678',
-                'direccion'     => 'El Quior',
-                'carga_horaria' => 8,
-                'idUsuario'     => 8,
-                'created_at'    => now(),
-                'updated_at'    => now(),
-            ],[
-                'nombre'        => 'Carlos',
-                'apellido'      => 'Vasquez',
-                'ci'            => '3333333',
-                'nroTelefono'   => '76645678',
-                'direccion'     => '2do Anillo',
-                'carga_horaria' => 16,
-                'idUsuario'     => 9,  // usuario docente 2
-                'created_at'    => now(),
-                'updated_at'    => now(),
-            ],[
-                'nombre'        => 'Ana Lucía',
-                'apellido'      => 'Torrez Blanco',
-                'ci'            => '4444444',
-                'nroTelefono'   => '76645678',
-                'direccion'     => 'Radial 27 Mz. 5 Casa 3, Santa Cruz',
-                'carga_horaria' => 8,
-                'idUsuario'     => 10,
-                'created_at'    => now(),
-                'updated_at'    => now(),
-            ],
         ];
         DB::table('docentes')->insert($docentes);
 
@@ -311,15 +318,15 @@ class poblacionCompleta extends Seeder
         // 15. HORARIOS
         // =========================================================
         DB::table('horarios')->insert([
-            ['hora_ini' => '07:00:00', 'hora_fin' => '08:30:00', 'dia' => 'Lunes, Martes, Miercoles, Jueves y Viernes',     'created_at' => now(), 'updated_at' => now()],
-            ['hora_ini' => '08:30:00', 'hora_fin' => '10:00:00', 'dia' => 'Lunes, Martes, Miercoles, Jueves y Viernes',     'created_at' => now(), 'updated_at' => now()],
-            ['hora_ini' => '10:00:00', 'hora_fin' => '11:30:00', 'dia' => 'Lunes, Martes, Miercoles, Jueves y Viernes',     'created_at' => now(), 'updated_at' => now()],
-            ['hora_ini' => '14:00:00', 'hora_fin' => '15:30:00', 'dia' => 'Lunes, Martes, Miercoles, Jueves y Viernes',     'created_at' => now(), 'updated_at' => now()],
-            ['hora_ini' => '15:30:00', 'hora_fin' => '17:00:00', 'dia' => 'Lunes, Martes, Miercoles, Jueves y Viernes',     'created_at' => now(), 'updated_at' => now()],
-            ['hora_ini' => '17:00:00', 'hora_fin' => '18:30:00', 'dia' => 'Lunes, Martes, Miercoles, Jueves y Viernes',     'created_at' => now(), 'updated_at' => now()],
-            ['hora_ini' => '18:30:00', 'hora_fin' => '20:00:00', 'dia' => 'Lunes, Martes, Miercoles, Jueves y Viernes',     'created_at' => now(), 'updated_at' => now()],
-            ['hora_ini' => '20:00:00', 'hora_fin' => '21:30:00', 'dia' => 'Lunes, Martes, Miercoles, Jueves y Viernes',     'created_at' => now(), 'updated_at' => now()],
-            ['hora_ini' => '21:30:00', 'hora_fin' => '23:00:00', 'dia' => 'Lunes, Martes, Miercoles, Jueves y Viernes',     'created_at' => now(), 'updated_at' => now()],        
+            ['hora_ini' => '07:00:00', 'hora_fin' => '08:30:00', 'dia' => 'L, M, M, J, V',     'created_at' => now(), 'updated_at' => now()],
+            ['hora_ini' => '08:30:00', 'hora_fin' => '10:00:00', 'dia' => 'L, M, M, J, V',     'created_at' => now(), 'updated_at' => now()],
+            ['hora_ini' => '10:00:00', 'hora_fin' => '11:30:00', 'dia' => 'L, M, M, J, V',     'created_at' => now(), 'updated_at' => now()],
+            ['hora_ini' => '14:00:00', 'hora_fin' => '15:30:00', 'dia' => 'L, M, M, J, V',     'created_at' => now(), 'updated_at' => now()],
+            ['hora_ini' => '15:30:00', 'hora_fin' => '17:00:00', 'dia' => 'L, M, M, J, V',     'created_at' => now(), 'updated_at' => now()],
+            ['hora_ini' => '17:00:00', 'hora_fin' => '18:30:00', 'dia' => 'L, M, M, J, V',     'created_at' => now(), 'updated_at' => now()],
+            ['hora_ini' => '18:30:00', 'hora_fin' => '20:00:00', 'dia' => 'L, M, M, J, V',     'created_at' => now(), 'updated_at' => now()],
+            ['hora_ini' => '20:00:00', 'hora_fin' => '21:30:00', 'dia' => 'L, M, M, J, V',     'created_at' => now(), 'updated_at' => now()],
+            ['hora_ini' => '21:30:00', 'hora_fin' => '23:00:00', 'dia' => 'L, M, M, J, V',     'created_at' => now(), 'updated_at' => now()],        
             ]);
 
         // =========================================================

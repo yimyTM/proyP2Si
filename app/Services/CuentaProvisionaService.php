@@ -38,22 +38,28 @@ class CuentaProvisionaService
 
     /**
      * Crea una cuenta User + vincula al Docente existente.
+     * El correo se recibe por parámetro porque la tabla docentes no lo almacena.
      * Devuelve la contraseña en texto plano (solo en este momento se conoce).
      */
-    public static function crearCuentaDocente(Docente $docente): string
+    public static function crearCuentaDocente(Docente $docente, ?string $correo = null): string
     {
         $password    = self::generarPassword();
         $rolDocente  = Rol::where('nombre_Rol', 'Docente')->firstOrFail();
+        $email       = $correo ?? $docente->getAttribute('correo');
 
         $user = User::create([
             'nombreCompleto' => "{$docente->nombre} {$docente->apellido}",
-            'correo'         => $docente->correo,
+            'ci'             => $docente->ci,
+            'correo'         => $email,
             'telefono'       => $docente->nroTelefono,
             'password'       => Hash::make($password),
             'idRol'          => $rolDocente->idRol,
         ]);
 
-        $docente->update(['idUsuario' => $user->idUsuario]);
+        // Persistir solo idUsuario sin arrastrar atributos no-columna (p.ej. correo).
+        Docente::where('codigoDoc', $docente->codigoDoc)
+            ->update(['idUsuario' => $user->idUsuario]);
+        $docente->setAttribute('idUsuario', $user->idUsuario)->syncOriginal();
 
         return $password;
     }
@@ -69,6 +75,7 @@ class CuentaProvisionaService
 
         $user = User::create([
             'nombreCompleto' => "{$postulante->nombre} {$postulante->apellidos}",
+            'ci'             => $postulante->ci,
             'correo'         => $postulante->correo,
             'telefono'       => $postulante->nroTelefono,
             'password'       => Hash::make($password),

@@ -19,7 +19,7 @@ return new class extends Migration
             $table->string('nroTelefono', 20)->nullable();
             $table->string('direccion', 255)->nullable();
             $table->char('sexo', 1)->nullable();
-            $table->string('estado', 20)->default('activo');
+            $table->string('estado', 20)->default('no activo');
             $table->date('fecha_nacimiento')->nullable();
             $table->string('ciudad', 100)->nullable();
             $table->string('colegio_procedencia', 150)->nullable();

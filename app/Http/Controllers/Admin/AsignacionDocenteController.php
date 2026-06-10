@@ -50,6 +50,13 @@ class AsignacionDocenteController extends Controller
         $horario = Horario::findOrFail($request->idHorario);
         $materia = Materia::findOrFail($request->idMateria);
 
+        // ── Docente debe estar contratado en la gestión del grupo (CU15) ──────
+        if (! $docente->estaContratadoEn($grupo->idGestion)) {
+            return back()->withInput()->withErrors([
+                'codigoDoc' => 'El docente no puede asignarse: no ha sido contratado para esta gestión.',
+            ]);
+        }
+
         // ── Verificar colisiones ANTES de guardar ─────────────────────────────
         $colisiones = ColisionHorariosService::verificarTodo(
             $docente,

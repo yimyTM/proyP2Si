@@ -14,8 +14,11 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         // Alias del middleware RBAC
         $middleware->alias([
-            'role' => \App\Http\Middleware\CheckRole::class,
+            'role'     => \App\Http\Middleware\CheckRole::class,
+            'nocache'  => \App\Http\Middleware\NoCacheHeaders::class,
         ]);
+
+        $middleware->appendToGroup('auth', \App\Http\Middleware\NoCacheHeaders::class);
 
         /*
          * FIX: ERR_TOO_MANY_REDIRECTS

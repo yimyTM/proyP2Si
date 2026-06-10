@@ -1,11 +1,11 @@
-@if($docente->correo)
+{{-- Acción rápida: restablecer contraseña (solo si ya tiene cuenta).
+     La creación de cuenta se hace desde la vista de detalle (requiere correo + contrato). --}}
+@if($docente->usuario)
 <form method="POST" action="{{ route('admin.docentes.provisionar-cuenta', $docente) }}" class="inline"
-      onsubmit="return confirm(@js($docente->usuario ? '¿Generar una nueva contraseña para este docente?' : '¿Crear cuenta de acceso para este docente?'))">
+      onsubmit="return confirm('¿Generar una nueva contraseña para este docente?')">
     @csrf
-    <button type="submit"
-            class="text-xs px-3 py-1 rounded-lg text-white transition hover:opacity-90"
-            style="background-color: #283342;">
-        {{ $docente->usuario ? 'Restablecer contraseña' : 'Crear cuenta' }}
+    <button type="submit" class="text-xs text-indigo-600 hover:underline">
+        Restablecer contraseña
     </button>
 </form>
 @endif

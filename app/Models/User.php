@@ -83,6 +83,21 @@ class User extends Authenticatable
         return $this->hasRole('Postulante');
     }
 
+    public function esRolAdmin(): bool
+    {
+        return in_array($this->rol?->nombre_Rol, ['Administrador', 'Autoridades', 'Coordinador']);
+    }
+
+    public function hasPermission(string $nombrePermiso): bool
+    {
+        if (!$this->relationLoaded('rol')) {
+            $this->load('rol.permisos');
+        } elseif ($this->rol && !$this->rol->relationLoaded('permisos')) {
+            $this->rol->load('permisos');
+        }
+        return $this->rol?->permisos->contains('nombrePermiso', $nombrePermiso) ?? false;
+    }
+
     /** Laravel usa "email" en password_reset_tokens; aquí devolvemos el correo del usuario. */
     public function getEmailForPasswordReset(): string
     {

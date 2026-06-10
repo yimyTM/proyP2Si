@@ -21,8 +21,8 @@ class RegistroController extends Controller
     /** Landing page pública. */
     public function landing(): View
     {
-        $carreras = Carreras::with('modalidads')->orderBy('nombre')->get();
-        $gestion  = Gestions::where('estado', 'Abierta')->latest('fecha_ini')->first();
+        $carreras = Carrera::with('modalidad')->orderBy('nombre')->get();
+        $gestions  = Gestion::where('estado', 'Abierta')->latest('fecha_ini')->first();
         return view('landing', compact('carreras', 'gestions'));
     }
 

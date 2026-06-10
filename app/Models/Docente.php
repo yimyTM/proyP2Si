@@ -18,13 +18,9 @@ class Docente extends Model
         'ci',
         'nroTelefono',
         'direccion',
-        'correo',
         'carga_horaria',
-        'contrasena',
         'idUsuario',
     ];
-
-    protected $hidden = ['contrasena'];
 
     public function usuario(): BelongsTo
     {
@@ -56,8 +52,48 @@ class Docente extends Model
         return $this->hasMany(Requisito_docente::class, 'codigoDoc', 'codigoDoc');
     }
 
+    public function gestiones(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            Gestion::class,
+            'docente_gestion',
+            'codigoDoc',
+            'idGestion'
+        )->withPivot('fecha_contrato', 'estado')->withTimestamps();
+    }
+
     public function getNombreCompletoAttribute(): string
     {
         return "{$this->nombre} {$this->apellido}";
+    }
+
+    /** ¿El docente está contratado en la gestión indicada? */
+    public function estaContratadoEn(int $idGestion): bool
+    {
+        return $this->gestiones()
+            ->wherePivot('idGestion', $idGestion)
+            ->wherePivot('estado', 'Contratado')
+            ->exists();
+    }
+
+    /**
+     * ¿Tiene todos los requisitos documentales obligatorios validados?
+     * Compara los requisitos tipo 'D' obligatorios contra los validados del docente.
+     */
+    public function tieneRequisitosValidados(): bool
+    {
+        $obligatorios = requisito::where('tipo', 'D')
+            ->where('obligatorio', true)
+            ->pluck('idReq');
+
+        if ($obligatorios->isEmpty()) {
+            return false;
+        }
+
+        $validados = $this->requisitosDocente()
+            ->where('validado', true)
+            ->pluck('idReq');
+
+        return $obligatorios->diff($validados)->isEmpty();
     }
 }

@@ -67,10 +67,10 @@
         <div class="max-w-7xl mx-auto px-6 lg:px-12 w-full flex flex-col md:flex-row items-center gap-16">
             <div class="md:w-1/2 space-y-7">
                 {{-- Badge --}}
-                @if($gestion)
+                @if($gestions)
                 <div class="inline-flex items-center gap-2 px-3 py-1.5 bg-white/10 border border-white/20 rounded-full text-xs font-semibold text-ficct-accent uppercase tracking-widest">
                     <span class="material-symbols-outlined text-base">school</span>
-                    Admisiones {{ $gestion->nombre }} — Abiertas
+                    Admisiones {{ $gestions->nombre }} — Abiertas
                 </div>
                 @endif
                 <h1 class="text-4xl lg:text-5xl font-bold text-white leading-tight">

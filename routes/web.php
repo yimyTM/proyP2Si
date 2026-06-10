@@ -86,6 +86,7 @@ Route::middleware(['auth', 'role:Administrador,Autoridades,Coordinador'])
         Route::get('/importar-personal/plantilla', [DocenteController::class, 'plantilla'])->name('importar-personal.plantilla');
 
         // CRUD Docentes
+        Route::post('/docentes/{docente}/contratar', [DocenteController::class, 'contratar'])->name('docentes.contratar');
         Route::post('/docentes/{docente}/provisionar-cuenta', [DocenteController::class, 'provisionarCuenta'])->name('docentes.provisionar-cuenta');
         Route::resource('docentes', DocenteController::class);
 

@@ -10,7 +10,7 @@ class Permiso extends Model
     protected $table      = 'permisos';
     protected $primaryKey = 'idPermiso';
 
-    protected $fillable = ['nombrePermiso', 'categoria'];
+    protected $fillable = ['nombrePermiso'];
 
     public function roles(): BelongsToMany
     {

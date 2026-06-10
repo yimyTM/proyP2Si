@@ -16,16 +16,23 @@ class DocenteRequest extends FormRequest
     {
         $docente   = $this->route('docente');
         $docenteId = $docente?->codigoDoc;
-        $userId    = $docente?->idUsuario;
 
         return [
             'nombre'        => ['required', 'string', 'max:100'],
             'apellido'      => ['required', 'string', 'max:100'],
             'ci'            => ['required', 'string', 'max:20', Rule::unique('docentes', 'ci')->ignore($docenteId, 'codigoDoc')],
-            'correo'        => ['nullable', 'email', 'max:100', Rule::unique('users', 'correo')->ignore($userId, 'idUsuario')],
             'nroTelefono'   => ['nullable', 'string', 'max:20'],
             'direccion'     => ['nullable', 'string', 'max:255'],
             'carga_horaria' => ['nullable', 'integer', 'min:0', 'max:40'],
+
+            // CU15 — formación académica y requisitos documentales (solo en registro)
+            'formaciones'                  => ['nullable', 'array'],
+            'formaciones.*'                => ['integer', 'exists:form_academicas,idForm'],
+            'nuevas_profesiones'           => ['nullable', 'array'],
+            'nuevas_profesiones.*.nombProfesion' => ['nullable', 'string', 'max:100'],
+            'nuevas_profesiones.*.nroProfesion'  => ['nullable', 'string', 'max:50'],
+            'requisitos'                   => ['nullable', 'array'],
+            'requisitos.*.fecha_entrega'   => ['nullable', 'date'],
         ];
     }
 
@@ -36,8 +43,6 @@ class DocenteRequest extends FormRequest
             'apellido.required' => 'El apellido es obligatorio.',
             'ci.required'       => 'La cédula de identidad es obligatoria.',
             'ci.unique'         => 'Ya existe un docente con esa CI.',
-            'correo.email'      => 'Ingrese un correo electrónico válido.',
-            'correo.unique'     => 'Ese correo ya está registrado en el sistema.',
         ];
     }
 }

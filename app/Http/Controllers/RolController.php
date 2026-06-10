@@ -12,6 +12,54 @@ use Illuminate\View\View;
 class RolController extends Controller
 {
     /**
+     * Mapa nombre de permiso → categoría.
+     *
+     * La tabla `permisos` no tiene columna `categoria`, así que la
+     * categorización para la vista se deriva aquí (refleja las
+     * agrupaciones definidas en el seeder poblacionCompleta).
+     */
+    private const CATEGORIAS = [
+        'iniciar_sesion'           => 'Autenticación',
+        'cerrar_sesion'            => 'Autenticación',
+        'recuperar_contrasena'     => 'Autenticación',
+
+        'ver_postulantes'          => 'Postulantes',
+        'registrar_postulante'     => 'Postulantes',
+        'editar_postulante'        => 'Postulantes',
+        'eliminar_postulante'      => 'Postulantes',
+        'buscar_postulante'        => 'Postulantes',
+
+        'realizar_pago'            => 'Inscripción / Pago',
+        'ver_inscripcion'          => 'Inscripción / Pago',
+        'gestionar_inscripciones'  => 'Inscripción / Pago',
+
+        'registrar_notas'          => 'Exámenes / Notas',
+        'editar_notas'             => 'Exámenes / Notas',
+        'ver_notas'                => 'Exámenes / Notas',
+        'ver_resultado_propio'     => 'Exámenes / Notas',
+
+        'ver_grupos'               => 'Grupos',
+        'gestionar_grupos'         => 'Grupos',
+        'asignar_estudiante_grupo' => 'Grupos',
+
+        'ver_docentes'             => 'Docentes',
+        'gestionar_docentes'       => 'Docentes',
+        'asignar_docente_grupo'    => 'Docentes',
+        'ver_carga_horaria'        => 'Docentes',
+        'registrar_asistencia'     => 'Docentes',
+
+        'ver_reportes'             => 'Reportes',
+        'generar_reportes'         => 'Reportes',
+        'exportar_reportes'        => 'Reportes',
+
+        'ver_dashboard'            => 'Dashboard',
+
+        'gestionar_usuarios'       => 'Usuarios',
+        'importar_usuarios_csv'    => 'Usuarios',
+        'ver_perfil'               => 'Usuarios',
+    ];
+
+    /**
      * Muestra todos los roles con sus permisos asignados y el listado
      * completo de permisos disponibles agrupados por categoría.
      *
@@ -23,25 +71,19 @@ class RolController extends Controller
             ->withCount('users')
             ->get();
 
-        // Todos los permisos agrupados por categoría para las checkboxes
-        $permisosPorCategoria = Permiso::orderBy('categoria')
-            ->orderBy('nombrePermiso')
-            ->get()
-            ->groupBy('categoria');
+        $todosLosPermisos = Permiso::orderBy('idPermiso')->get();
+
+        // Agrupar por categoría derivada (la BD no almacena la categoría).
+        $permisosPorCategoria = $todosLosPermisos->groupBy(
+            fn ($permiso) => self::CATEGORIAS[$permiso->nombrePermiso] ?? 'Otros'
+        );
 
         // Total de permisos para la barra de progreso visual
-        $totalPermisos = Permiso::count();
+        $totalPermisos = $todosLosPermisos->count();
 
-        return view('admin.roles.index', compact('roles', 'permisosPorCategoria', 'totalPermisos'));
+        return view('admin.roles.index', compact('roles', 'totalPermisos', 'permisosPorCategoria'));
     }
 
-    /**
-     * Sincroniza los permisos de un rol con los seleccionados en el formulario.
-     *
-     * sync() → desvincula los que NO estén en la lista y vincula los nuevos.
-     * Esto garantiza que el estado final del rol coincide exactamente con
-     * lo que el administrador marcó, sin duplicados ni permisos fantasma.
-     */
     public function actualizarPermisos(Request $request, Rol $rol): RedirectResponse
     {
         $request->validate([
