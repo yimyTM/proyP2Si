@@ -32,28 +32,37 @@
         </div>
     @endif
 
-    {{-- Header con botón crear --}}
-    <div class="flex items-center justify-between">
+    {{-- Header con botones --}}
+    <div class="flex items-center justify-between gap-3">
         <p class="text-sm text-gray-500">{{ $grupos->total() }} grupo(s) registrado(s)</p>
-        @if($gestionActiva)
-        <a href="{{ route('admin.grupos.create') }}"
-           class="flex items-center gap-2 px-4 py-2.5 rounded-xl text-white text-sm font-semibold transition hover:opacity-90"
-           style="background-color: #283342;">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-            </svg>
-            + Nuevo Grupo
-        </a>
-        @else
-        <button disabled
-                class="flex items-center gap-2 px-4 py-2.5 rounded-xl text-white text-sm font-semibold opacity-40 cursor-not-allowed"
-                style="background-color: #283342;">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-            </svg>
-            Nuevo Grupo
-        </button>
-        @endif
+        <div class="flex items-center gap-2">
+            @if($gestionActiva)
+            <a href="{{ route('admin.grupos.distribuir') }}"
+               class="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold border border-[#283342] text-[#283342] hover:bg-[#283342] hover:text-white transition">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"/>
+                </svg>
+                Distribuir postulantes
+            </a>
+            <a href="{{ route('admin.grupos.create') }}"
+               class="flex items-center gap-2 px-4 py-2.5 rounded-xl text-white text-sm font-semibold transition hover:opacity-90"
+               style="background-color: #283342;">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                </svg>
+                + Nuevo Grupo
+            </a>
+            @else
+            <button disabled
+                    class="flex items-center gap-2 px-4 py-2.5 rounded-xl text-white text-sm font-semibold opacity-40 cursor-not-allowed"
+                    style="background-color: #283342;">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                </svg>
+                Nuevo Grupo
+            </button>
+            @endif
+        </div>
     </div>
 
     {{-- Tabla --}}

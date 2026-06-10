@@ -13,7 +13,7 @@ class Inscripcion extends Model
     protected $table      = 'inscripcions';
     protected $primaryKey = 'idInscripcion';
 
-    protected $fillable = ['fecha', 'estado', 'motivo_rechazo', 'promedio', 'resultado', 'codCarreraAsignada', 'estado_admision', 'idPost', 'idGestion'];
+    protected $fillable = ['fecha', 'estado', 'motivo_rechazo', 'promedio', 'resultado', 'codCarreraAsignada', 'estado_admision', 'idPost', 'idGestion', 'codigoG'];
 
     protected function casts(): array
     {
@@ -31,6 +31,11 @@ class Inscripcion extends Model
     public function gestion(): BelongsTo
     {
         return $this->belongsTo(Gestion::class, 'idGestion', 'idGestion');
+    }
+
+    public function grupo(): BelongsTo
+    {
+        return $this->belongsTo(Grupo::class, 'codigoG', 'codigoG');
     }
 
     public function carreraAsignada(): BelongsTo

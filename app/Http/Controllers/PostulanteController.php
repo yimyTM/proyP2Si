@@ -4,11 +4,13 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\PostulanteRequest;
 use App\Models\Carrera;
+use App\Models\Gestion;
 use App\Models\Postulante;
 use App\Services\BitacoraService;
 use App\Services\CuentaProvisionaService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 
 class PostulanteController extends Controller
@@ -18,6 +20,86 @@ class PostulanteController extends Controller
     public function dashboard(): View
     {
         return view('postulante.dashboard');
+    }
+
+    // ── CU16: Consultar estado de admisión y calificaciones ───────────────────
+
+    public function resultados(): View
+    {
+        $postulante = Auth::user()->postulante;
+
+        $gestion = Gestion::where('estado', 'Abierta')->first()
+                ?? Gestion::latest('idGestion')->first();
+
+        if (!$postulante) {
+            return view('postulante.resultados', ['error' => 'sin_inscripcion', 'gestion' => $gestion]);
+        }
+
+        $inscripcion = $postulante->inscripciones()
+            ->when($gestion, fn($q) => $q->where('idGestion', $gestion->idGestion))
+            ->latest('idInscripcion')
+            ->first();
+
+        if (!$inscripcion) {
+            return view('postulante.resultados', ['error' => 'sin_inscripcion', 'gestion' => $gestion]);
+        }
+
+        if (!$postulante->tienePagoAprobado()) {
+            return view('postulante.resultados', [
+                'error'       => 'pago_pendiente',
+                'gestion'     => $gestion,
+                'inscripcion' => $inscripcion,
+            ]);
+        }
+
+        $inscripcion->load([
+            'notas.examMateria.examen',
+            'notas.examMateria.materia',
+            'carrerasInscritas.carrera',
+            'carreraAsignada',
+        ]);
+
+        if ($inscripcion->notas->isEmpty()) {
+            return view('postulante.resultados', [
+                'error'       => 'sin_resultados',
+                'gestion'     => $gestion,
+                'inscripcion' => $inscripcion,
+            ]);
+        }
+
+        // Examenes únicos ordenados por nroParcial
+        $examenes = $inscripcion->notas
+            ->pluck('examMateria.examen')
+            ->unique('idExamen')
+            ->sortBy('nroParcial')
+            ->values();
+
+        // Notas agrupadas por materia → por nroParcial
+        $materias = $inscripcion->notas
+            ->groupBy(fn($nota) => $nota->examMateria->idMateria)
+            ->map(function ($notas) {
+                $first = $notas->first();
+                return (object)[
+                    'nombre'    => $first->examMateria->materia->nombMateria,
+                    'parciales' => $notas->keyBy(fn($n) => $n->examMateria->examen->nroParcial),
+                ];
+            })
+            ->sortBy('nombre')
+            ->values();
+
+        // Carrera asignada e indicador de opción
+        $carreraAsignada = $inscripcion->carreraAsignada;
+        $opcionAsignada  = null;
+        if ($carreraAsignada) {
+            $opcionRow      = $inscripcion->carrerasInscritas->firstWhere('codCarrera', $carreraAsignada->codCarrera);
+            $opcionAsignada = $opcionRow?->prioridad;
+        }
+
+        return view('postulante.resultados', compact(
+            'postulante', 'gestion', 'inscripcion',
+            'materias', 'examenes',
+            'carreraAsignada', 'opcionAsignada'
+        ));
     }
 
     // ── CU05: Búsqueda avanzada de estudiantes (Admin) ────────────────────────

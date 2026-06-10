@@ -155,6 +155,120 @@ class GrupoController extends Controller
             ->with('success', "Grupo «{$nombre}» eliminado correctamente.");
     }
 
+    // ── CU17: Distribuir postulantes en grupos ────────────────────────────────
+
+    public function distribuirPreview(): View|RedirectResponse
+    {
+        $gestion = Gestion::where('estado', 'Abierta')->first();
+
+        if (!$gestion) {
+            return redirect()->route('admin.grupos.index')
+                ->with('error', 'No hay una gestión activa. Abra una gestión antes de distribuir.');
+        }
+
+        $grupos = Grupo::where('idGestion', $gestion->idGestion)
+            ->with(['modalidad', 'turno'])
+            ->orderBy('numero_grupo')
+            ->get();
+
+        if ($grupos->isEmpty()) {
+            return redirect()->route('admin.grupos.index')
+                ->with('error', 'Debe crear los grupos académicos antes de realizar la distribución (CU06).');
+        }
+
+        // Include already-assigned for redistribution preview
+        $postulantes = \App\Models\Inscripcion::where('idGestion', $gestion->idGestion)
+            ->whereIn('estado', ['Habilitado', 'Asignado a grupo'])
+            ->with('postulante')
+            ->whereHas('postulante')
+            ->get()
+            ->sortBy('postulante.apellidos')
+            ->values();
+
+        if ($postulantes->isEmpty()) {
+            return redirect()->route('admin.grupos.index')
+                ->with('error', 'No hay postulantes habilitados para distribuir en la gestión activa.');
+        }
+
+        $capacidadTotal   = $grupos->sum('capacidad');
+        $totalPostulantes = $postulantes->count();
+        $yaDistribuido    = $postulantes->contains('estado', 'Asignado a grupo');
+        $capacidadOk      = $totalPostulantes <= $capacidadTotal;
+
+        // Round-robin alphabetical distribution
+        $distribucion = $grupos->mapWithKeys(fn($g) => [$g->codigoG => collect()]);
+        if ($capacidadOk) {
+            foreach ($postulantes as $i => $insc) {
+                $codigoG = $grupos[$i % $grupos->count()]->codigoG;
+                $distribucion[$codigoG]->push($insc);
+            }
+        }
+
+        return view('admin.grupos.distribuir', compact(
+            'gestion', 'grupos', 'postulantes', 'distribucion',
+            'capacidadTotal', 'totalPostulantes', 'yaDistribuido', 'capacidadOk'
+        ));
+    }
+
+    public function distribuirConfirmar(Request $request): RedirectResponse
+    {
+        $gestion = Gestion::where('estado', 'Abierta')->first();
+
+        if (!$gestion) {
+            return redirect()->route('admin.grupos.index')
+                ->with('error', 'No hay una gestión activa.');
+        }
+
+        $grupos = Grupo::where('idGestion', $gestion->idGestion)
+            ->orderBy('numero_grupo')
+            ->get();
+
+        if ($grupos->isEmpty()) {
+            return redirect()->route('admin.grupos.index')
+                ->with('error', 'No hay grupos disponibles para la distribución.');
+        }
+
+        $postulantes = \App\Models\Inscripcion::where('idGestion', $gestion->idGestion)
+            ->whereIn('estado', ['Habilitado', 'Asignado a grupo'])
+            ->whereHas('postulante')
+            ->with('postulante')
+            ->get()
+            ->sortBy('postulante.apellidos')
+            ->values();
+
+        if ($postulantes->isEmpty()) {
+            return redirect()->route('admin.grupos.index')
+                ->with('error', 'No hay postulantes habilitados para distribuir.');
+        }
+
+        $capacidadTotal = $grupos->sum('capacidad');
+
+        if ($postulantes->count() > $capacidadTotal) {
+            return redirect()->route('admin.grupos.distribuir')
+                ->with('error', "La cantidad de postulantes ({$postulantes->count()}) excede la capacidad total ({$capacidadTotal}). Se requiere abrir grupos adicionales.");
+        }
+
+        DB::transaction(function () use ($postulantes, $grupos) {
+            foreach ($postulantes as $i => $insc) {
+                $grupo = $grupos[$i % $grupos->count()];
+                $insc->update([
+                    'codigoG' => $grupo->codigoG,
+                    'estado'  => 'Asignado a grupo',
+                ]);
+            }
+        });
+
+        $total = $postulantes->count();
+        $nGrupos = $grupos->count();
+
+        BitacoraService::registrar(
+            "CU17: {$total} postulantes distribuidos en {$nGrupos} grupos (gestión {$gestion->idGestion})."
+        );
+
+        return redirect()->route('admin.grupos.index')
+            ->with('success', "Distribución completada. {$total} postulantes asignados a {$nGrupos} grupos.");
+    }
+
     // ── Apertura automática (conservada para compatibilidad, ya no en sidebar) ─
     public function apertura(): View
     {

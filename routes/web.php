@@ -11,6 +11,7 @@ use App\Http\Controllers\DocenteController;
 use App\Http\Controllers\Admin\AsignacionDocenteController;
 use App\Http\Controllers\Admin\AdmisionController;
 use App\Http\Controllers\Admin\ReporteController;
+use App\Http\Controllers\RegistroController;
 use App\Http\Controllers\GrupoController;
 use App\Http\Controllers\InscripcionController;
 use App\Http\Controllers\MateriGrupoController;
@@ -25,8 +26,21 @@ use App\Http\Controllers\Docente\ResultadoController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
-// ── Raíz ──────────────────────────────────────────────────────────────────────
-Route::get('/', fn() => redirect()->route('login'));
+// ── Raíz / Landing pública ────────────────────────────────────────────────────
+Route::get('/', [RegistroController::class, 'landing'])->name('home');
+
+// ── Registro de postulante – Paso 1 (solo invitados) ──────────────────────────
+Route::middleware('guest')->group(function () {
+    Route::get('/registro',  [RegistroController::class, 'index'])->name('registro');
+    Route::post('/registro', [RegistroController::class, 'store'])->name('registro.store');
+});
+
+// ── Registro de postulante – Pasos 2 y 3 (postulante autenticado) ─────────────
+Route::middleware(['auth', 'role:Postulante'])->group(function () {
+    Route::get('/registro/documentos',  [RegistroController::class, 'showDocumentos'])->name('registro.documentos');
+    Route::post('/registro/documentos', [RegistroController::class, 'storeDocumentos'])->name('registro.documentos.store');
+    Route::get('/registro/pago',        [RegistroController::class, 'showPago'])->name('registro.pago');
+});
 
 // ── Ruta /dashboard: resuelve el destino según el rol del usuario ─────────────
 // Esta ruta es el destino del middleware 'guest' cuando el usuario ya está
@@ -100,6 +114,8 @@ Route::middleware(['auth', 'role:Administrador,Autoridades,Coordinador'])
             ->parameters(['aulas' => 'aula']);
 
         // CU06 – CRUD Grupos (manual)
+        Route::get('/grupos/distribuir',  [GrupoController::class, 'distribuirPreview'])->name('grupos.distribuir');
+        Route::post('/grupos/distribuir', [GrupoController::class, 'distribuirConfirmar'])->name('grupos.distribuir.confirmar');
         Route::resource('grupos', GrupoController::class)
             ->parameters(['grupos' => 'grupo'])
             ->except(['show']);
@@ -173,4 +189,7 @@ Route::middleware(['auth', 'role:Postulante'])
         // CU04 – Expediente digital
         Route::get('/expediente',  [InscripcionController::class, 'expediente'])->name('expediente');
         Route::post('/expediente', [InscripcionController::class, 'guardarExpediente'])->name('expediente.store');
+
+        // CU16 – Resultados de admisión y calificaciones
+        Route::get('/resultados', [PostulanteController::class, 'resultados'])->name('resultados');
     });
