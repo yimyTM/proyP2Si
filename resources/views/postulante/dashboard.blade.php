@@ -37,7 +37,7 @@
                 <a href="{{ route('postulante.resultados') }}"
                    class="flex items-center gap-2 text-[#283342] hover:underline font-medium">
                     <span class="w-2 h-2 rounded-full bg-[#283342]"></span>
-                    CU16 – Consultar resultados de admisión
+                    CU16 – Mis resultados y notas
                 </a>
             </li>
         </ul>

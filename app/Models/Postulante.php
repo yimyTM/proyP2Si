@@ -64,6 +64,7 @@ class Postulante extends Model
 
     public function tienePagoAprobado(): bool
     {
-        return $this->pagos()->where('estado', 'aprobado')->exists();
+        // 'aprobado' lo usa la pasarela Stripe; 'pagado' es el estado del seed/pagos manuales.
+        return $this->pagos()->whereIn('estado', ['aprobado', 'pagado'])->exists();
     }
 }

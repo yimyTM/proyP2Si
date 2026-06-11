@@ -48,6 +48,11 @@ class Inscripcion extends Model
         return $this->hasMany(Carrera_Inscrito::class, 'idInscripcion', 'idInscripcion');
     }
 
+    public function notas(): HasMany
+    {
+        return $this->hasMany(Nota::class, 'idInscripcion', 'idInscripcion');
+    }
+
     public function carreras(): BelongsToMany
     {
         return $this->belongsToMany(

@@ -35,4 +35,12 @@ return [
         ],
     ],
 
+    'stripe' => [
+        'key'      => env('STRIPE_KEY'),
+        'secret'   => env('STRIPE_SECRET'),
+        // Monto de la inscripción (en centavos) y moneda para Stripe Checkout.
+        'currency' => env('STRIPE_CURRENCY', 'usd'),
+        'monto'    => env('STRIPE_MONTO_INSCRIPCION', 15000), // 150.00 USD
+    ],
+
 ];

@@ -35,7 +35,9 @@ class User extends Authenticatable
     protected function casts(): array
     {
         return [
-            'password' => 'hashed',
+            'password'        => 'hashed',
+            'bloqueado_hasta' => 'datetime',
+            'ultimo_acceso'   => 'datetime',
         ];
     }
 
@@ -100,6 +102,16 @@ class User extends Authenticatable
 
     /** Laravel usa "email" en password_reset_tokens; aquí devolvemos el correo del usuario. */
     public function getEmailForPasswordReset(): string
+    {
+        return $this->correo;
+    }
+
+    /**
+     * Destinatario del canal "mail" de las notificaciones.
+     * Por defecto Laravel usa $this->email; como el modelo usa "correo",
+     * debemos indicarlo aquí o las notificaciones por correo no tendrían destinatario.
+     */
+    public function routeNotificationForMail($notification = null): string
     {
         return $this->correo;
     }

@@ -142,10 +142,10 @@ DB::table('rol_permisos')->insert($rolPermisos);
             ],
             // Docentes (usuarios)
             [
-                'nombreCompleto'   => 'Jorge Luis Peña Roca',
+                'nombreCompleto'   => 'Yimy Tarqui Mamani',
                 'ci'               => '3456789',
                 'telefono'         => '76534567',
-                'correo'           => 'jpeña@ficct.edu.bo',
+                'correo'           => 'yimyt771p@gmail.com',
                 'password'         => Hash::make('Docente@2025'),
                 'idRol'            => 3,
                 'estado'           => true,

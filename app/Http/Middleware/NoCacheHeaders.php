@@ -12,10 +12,14 @@ class NoCacheHeaders
     {
         $response = $next($request);
 
-        return $response->withHeaders([
-            'Cache-Control' => 'no-store, no-cache, must-revalidate, private',
-            'Pragma'        => 'no-cache',
-            'Expires'       => '0',
-        ]);
+        // Usamos $response->headers->set() (HeaderBag) en lugar de withHeaders():
+        // withHeaders() solo existe en Illuminate\Http\Response, no en
+        // StreamedResponse/BinaryFileResponse (descargas CSV/PDF), que también
+        // pasan por este middleware del grupo 'auth'.
+        $response->headers->set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+        $response->headers->set('Pragma', 'no-cache');
+        $response->headers->set('Expires', '0');
+
+        return $response;
     }
 }

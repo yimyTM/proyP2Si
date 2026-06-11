@@ -5,214 +5,378 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Gestion;
 use App\Models\Grupo;
-use App\Models\Inscripcion;
+use App\Services\ResultadoAcademicoService;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ReporteController extends Controller
 {
-    /** CU14 – Tablero de indicadores institucionales. */
+    public function __construct(private ResultadoAcademicoService $resultado) {}
+
+    /** Catálogo de reportes disponibles (clave => título). */
+    private const REPORTES = [
+        'lista-general'        => 'Lista general de postulantes',
+        'aprobados'            => 'Postulantes aprobados',
+        'reprobados'           => 'Postulantes reprobados',
+        'promedios'            => 'Promedios generales',
+        'grupos-habilitados'   => 'Cantidad de grupos habilitados',
+        'estadisticas-materia' => 'Estadísticas por materia',
+        'docentes-grupos'      => 'Docentes por grupos',
+        'grupos-aprobados'     => 'Grupos con mayor cantidad de aprobados',
+    ];
+
+    /** Reportes que admiten el filtro por grupo. */
+    private const FILTRABLES_POR_GRUPO = ['lista-general', 'aprobados', 'reprobados', 'promedios'];
+
+    // ── Panel ─────────────────────────────────────────────────────────────────
+
     public function index(Request $request): View
     {
-        $gestiones = Gestion::orderByDesc('fecha_ini')->get();
+        $gestiones    = Gestion::orderByDesc('fecha_ini')->get();
+        $gestionModel = $this->resolverGestion($request, $gestiones);
 
-        $gestionId    = $request->integer('gestion');
-        $gestionModel = $gestionId
-            ? $gestiones->find($gestionId)
-            : ($gestiones->firstWhere('estado', 'Abierta') ?? $gestiones->first());
+        $reporteClave = $this->resolverReporte($request);
+        $grupoId      = $request->integer('grupo') ?: null;
 
-        if (! $gestionModel) {
-            return view('admin.reportes.index', compact('gestiones') + ['gestionModel' => null]);
-        }
+        $grupos  = $gestionModel
+            ? Grupo::where('idGestion', $gestionModel->idGestion)->orderBy('numero_grupo')->get()
+            : collect();
 
-        $indicadores = $this->buildIndicadores($gestionModel);
+        $reporte = $gestionModel
+            ? $this->construirReporte($gestionModel, $reporteClave, $grupoId)
+            : null;
 
-        $historico = $gestiones
-            ->where('estado', 'Cerrada')
-            ->values()
-            ->map(fn ($g) => $this->buildResumenBasico($g));
-
-        return view('admin.reportes.index', array_merge(
-            compact('gestiones', 'gestionModel', 'historico'),
-            $indicadores
-        ));
-    }
-
-    /** CU14 – Exportar reporte en CSV (compatible Excel). */
-    public function exportarCsv(int $gestion): StreamedResponse
-    {
-        $gestionModel = Gestion::findOrFail($gestion);
-        $ind          = $this->buildIndicadores($gestionModel);
-        $nombre       = $gestionModel->nombre;
-        $fecha        = now()->format('Y-m-d');
-
-        return response()->streamDownload(function () use ($nombre, $ind) {
-            $h = fopen('php://output', 'w');
-            fwrite($h, "\xEF\xBB\xBF"); // UTF-8 BOM para Excel
-
-            fputcsv($h, ["REPORTE INSTITUCIONAL – {$nombre}"]);
-            fputcsv($h, ["Generado:", now()->format('d/m/Y H:i')]);
-            fputcsv($h, []);
-
-            fputcsv($h, ["RESUMEN GENERAL"]);
-            fputcsv($h, ["Total inscritos",          $ind['totalInscritos']]);
-            fputcsv($h, ["Aprobados",                 $ind['aprobados']]);
-            fputcsv($h, ["Reprobados",                $ind['reprobados']]);
-            fputcsv($h, ["En curso / Sin resultado",  $ind['enCurso']]);
-            fputcsv($h, []);
-
-            fputcsv($h, ["DISTRIBUCIÓN DE ADMISIÓN POR CARRERA"]);
-            fputcsv($h, ["Carrera", "Admitidos", "Reubicados", "Total"]);
-            foreach ($ind['admisionPorCarrera'] as $row) {
-                fputcsv($h, [
-                    $row->nombre ?? 'Sin nombre',
-                    $row->admitidos,
-                    $row->reubicados,
-                    $row->admitidos + $row->reubicados,
-                ]);
-            }
-            fputcsv($h, []);
-
-            fputcsv($h, ["RENDIMIENTO PROMEDIO POR MATERIA"]);
-            fputcsv($h, ["Materia", "Promedio (%)", "Calificaciones registradas"]);
-            foreach ($ind['promPorMateria'] as $row) {
-                fputcsv($h, [
-                    $row->nombMateria,
-                    number_format($row->pct_promedio ?? 0, 1),
-                    $row->total_notas,
-                ]);
-            }
-            fputcsv($h, []);
-
-            fputcsv($h, ["GRUPOS Y OCUPACIÓN"]);
-            fputcsv($h, ["Grupo", "Turno", "Capacidad", "Inscritos", "Ocupación (%)"]);
-            foreach ($ind['grupos'] as $g) {
-                fputcsv($h, [
-                    "Grupo {$g->numero_grupo}",
-                    $g->turno?->nombre ?? '-',
-                    $g->capacidad,
-                    $g->totalInscritos,
-                    $g->pctOcupacion,
-                ]);
-            }
-            fputcsv($h, []);
-
-            fputcsv($h, ["ASISTENCIA PROMEDIO POR GRUPO"]);
-            fputcsv($h, ["Grupo", "Total registros", "Presentes", "Ausentes", "% Asistencia"]);
-            foreach ($ind['asistenciaGrupos'] as $row) {
-                fputcsv($h, [
-                    "Grupo {$row->numero_grupo}",
-                    $row->total,
-                    $row->presentes,
-                    $row->ausentes,
-                    number_format($row->pct, 1),
-                ]);
-            }
-
-            fclose($h);
-        }, "reporte_{$nombre}_{$fecha}.csv", [
-            'Content-Type'        => 'text/csv; charset=UTF-8',
-            'Content-Disposition' => "attachment; filename=\"reporte_{$nombre}_{$fecha}.csv\"",
+        return view('admin.reportes.index', [
+            'gestiones'    => $gestiones,
+            'gestionModel' => $gestionModel,
+            'reportes'     => self::REPORTES,
+            'reporteClave' => $reporteClave,
+            'grupos'       => $grupos,
+            'grupoId'      => $grupoId,
+            'filtraGrupo'  => in_array($reporteClave, self::FILTRABLES_POR_GRUPO, true),
+            'reporte'      => $reporte,
         ]);
     }
 
-    /** CU14 – Vista imprimible (sin navegación). */
-    public function imprimir(int $gestion): View
-    {
-        $gestionModel = Gestion::findOrFail($gestion);
-        $indicadores  = $this->buildIndicadores($gestionModel);
+    // ── Exportar CSV ──────────────────────────────────────────────────────────
 
-        return view('admin.reportes.print', array_merge(
-            compact('gestionModel'),
-            $indicadores
-        ));
+    public function export(Request $request): StreamedResponse
+    {
+        $gestiones    = Gestion::orderByDesc('fecha_ini')->get();
+        $gestionModel = $this->resolverGestion($request, $gestiones);
+        abort_unless($gestionModel, 404, 'Gestión no encontrada.');
+
+        $clave   = $this->resolverReporte($request);
+        $grupoId = $request->integer('grupo') ?: null;
+        $reporte = $this->construirReporte($gestionModel, $clave, $grupoId);
+
+        $slug  = $clave;
+        $fecha = now()->format('Y-m-d');
+
+        return response()->streamDownload(function () use ($reporte, $gestionModel) {
+            $h = fopen('php://output', 'w');
+            fwrite($h, "\xEF\xBB\xBF"); // BOM UTF-8 para Excel
+
+            fputcsv($h, [$reporte['titulo']]);
+            fputcsv($h, ['Gestión:', $gestionModel->nombre]);
+            fputcsv($h, ['Generado:', now()->format('d/m/Y H:i')]);
+            foreach ($reporte['resumen'] as $label => $valor) {
+                fputcsv($h, [$label, $valor]);
+            }
+            fputcsv($h, []);
+
+            fputcsv($h, $reporte['columnas']);
+            foreach ($reporte['filas'] as $fila) {
+                fputcsv($h, $fila);
+            }
+            fclose($h);
+        }, "{$slug}_{$gestionModel->idGestion}_{$fecha}.csv", [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+        ]);
     }
 
-    /** Construye todos los indicadores para una gestión. */
-    private function buildIndicadores(Gestion $gestionModel): array
+    // ── Exportar PDF (dompdf) ─────────────────────────────────────────────────
+
+    public function pdf(Request $request): Response
     {
-        $gId = $gestionModel->idGestion;
+        $gestiones    = Gestion::orderByDesc('fecha_ini')->get();
+        $gestionModel = $this->resolverGestion($request, $gestiones);
+        abort_unless($gestionModel, 404, 'Gestión no encontrada.');
 
-        // 1. Resumen por resultado académico
-        $resultados     = Inscripcion::where('idGestion', $gId)
-            ->selectRaw('resultado, COUNT(*) as total')
-            ->groupBy('resultado')
-            ->pluck('total', 'resultado')
-            ->toArray();
-        $totalInscritos = Inscripcion::where('idGestion', $gId)->count();
-        $aprobados      = (int) ($resultados['Aprobado']  ?? 0);
-        $reprobados     = (int) ($resultados['Reprobado'] ?? 0);
-        $enCurso        = max(0, $totalInscritos - $aprobados - $reprobados);
+        $clave   = $this->resolverReporte($request);
+        $grupoId = $request->integer('grupo') ?: null;
+        $reporte = $this->construirReporte($gestionModel, $clave, $grupoId);
 
-        // 2. Distribución de admisión por carrera
-        $admisionPorCarrera = DB::table('inscripcions as i')
-            ->join('carreras as c', 'i.codCarreraAsignada', '=', 'c.codCarrera')
-            ->where('i.idGestion', $gId)
-            ->whereIn('i.estado_admision', ['Admitido', 'Reubicado'])
-            ->selectRaw('c."codCarrera", c.nombre,
-                SUM(CASE WHEN i.estado_admision = \'Admitido\'  THEN 1 ELSE 0 END) AS admitidos,
-                SUM(CASE WHEN i.estado_admision = \'Reubicado\' THEN 1 ELSE 0 END) AS reubicados')
-            ->groupBy('c.codCarrera', 'c.nombre')
-            ->orderByDesc('admitidos')
+        $pdf = Pdf::loadView('admin.reportes.pdf', [
+            'gestionModel' => $gestionModel,
+            'reporte'      => $reporte,
+        ])->setPaper('a4', 'portrait');
+
+        $fecha = now()->format('Y-m-d');
+
+        return $pdf->download("{$clave}_{$gestionModel->idGestion}_{$fecha}.pdf");
+    }
+
+    // ── Resolución de filtros ─────────────────────────────────────────────────
+
+    private function resolverGestion(Request $request, $gestiones): ?Gestion
+    {
+        $id = $request->integer('gestion');
+        if ($id) {
+            return $gestiones->firstWhere('idGestion', $id);
+        }
+        return $gestiones->firstWhere('estado', 'Abierta') ?? $gestiones->first();
+    }
+
+    private function resolverReporte(Request $request): string
+    {
+        $clave = $request->string('reporte')->toString();
+        return array_key_exists($clave, self::REPORTES) ? $clave : array_key_first(self::REPORTES);
+    }
+
+    // ── Construcción normalizada de cada reporte ──────────────────────────────
+
+    /**
+     * Devuelve un reporte normalizado:
+     *  ['clave','titulo','columnas'=>[], 'filas'=>[[...]], 'resumen'=>[label=>val], 'estadoCol'=>?int]
+     */
+    private function construirReporte(Gestion $g, string $clave, ?int $grupoId): array
+    {
+        return match ($clave) {
+            'aprobados'            => $this->repPostulantes($g, $grupoId, 'Aprobado'),
+            'reprobados'           => $this->repPostulantes($g, $grupoId, 'Reprobado'),
+            'promedios'            => $this->repPromedios($g, $grupoId),
+            'grupos-habilitados'   => $this->repGruposHabilitados($g),
+            'estadisticas-materia' => $this->repEstadisticasMateria($g),
+            'docentes-grupos'      => $this->repDocentesGrupos($g),
+            'grupos-aprobados'     => $this->repGruposAprobados($g),
+            default                => $this->repListaGeneral($g, $grupoId),
+        };
+    }
+
+    /** Evaluación académica de la gestión, ordenada por apellido, con filtro opcional de grupo. */
+    private function evaluacion(Gestion $g, ?int $grupoId)
+    {
+        $eval = $this->resultado->evaluarGestion($g->idGestion)->values()
+            ->sortBy(fn ($e) => $e->inscripcion->postulante?->apellidos)
+            ->values();
+
+        if ($grupoId) {
+            $eval = $eval->filter(fn ($e) => (int) $e->inscripcion->codigoG === $grupoId)->values();
+        }
+        return $eval;
+    }
+
+    private function repListaGeneral(Gestion $g, ?int $grupoId): array
+    {
+        $eval = $this->evaluacion($g, $grupoId);
+
+        $filas = $eval->map(function ($e) {
+            $p = $e->inscripcion->postulante;
+            return [
+                trim(($p?->apellidos ?? '') . ' ' . ($p?->nombre ?? '')) ?: '—',
+                $p?->ci ?? '—',
+                $e->inscripcion->grupo?->numero_grupo ?? 'Sin grupo',
+                $e->promedio ?? '—',
+                $e->resultado ?? 'Cursando',
+            ];
+        })->all();
+
+        return [
+            'clave'     => 'lista-general',
+            'titulo'    => self::REPORTES['lista-general'],
+            'columnas'  => ['Apellidos y Nombre', 'CI', 'Grupo', 'Promedio', 'Estado'],
+            'estadoCol' => 4,
+            'filas'     => $filas,
+            'resumen'   => [
+                'Total postulantes' => $eval->count(),
+                'Aprobados'         => $eval->where('resultado', 'Aprobado')->count(),
+                'Reprobados'        => $eval->where('resultado', 'Reprobado')->count(),
+                'Cursando'          => $eval->whereIn('resultado', [null, 'Incompleto'])->count(),
+            ],
+        ];
+    }
+
+    private function repPostulantes(Gestion $g, ?int $grupoId, string $estado): array
+    {
+        $eval  = $this->evaluacion($g, $grupoId)->where('resultado', $estado)->values();
+        $clave = $estado === 'Aprobado' ? 'aprobados' : 'reprobados';
+
+        $filas = $eval->map(function ($e) {
+            $p = $e->inscripcion->postulante;
+            return [
+                trim(($p?->apellidos ?? '') . ' ' . ($p?->nombre ?? '')) ?: '—',
+                $p?->ci ?? '—',
+                $e->inscripcion->grupo?->numero_grupo ?? 'Sin grupo',
+                $e->promedio ?? '—',
+            ];
+        })->all();
+
+        return [
+            'clave'     => $clave,
+            'titulo'    => self::REPORTES[$clave],
+            'columnas'  => ['Apellidos y Nombre', 'CI', 'Grupo', 'Promedio'],
+            'estadoCol' => null,
+            'filas'     => $filas,
+            'resumen'   => ['Total' => $eval->count()],
+        ];
+    }
+
+    private function repPromedios(Gestion $g, ?int $grupoId): array
+    {
+        $eval = $this->evaluacion($g, $grupoId)
+            ->filter(fn ($e) => $e->promedio !== null)
+            ->sortByDesc('promedio')
+            ->values();
+
+        $filas = $eval->map(function ($e) {
+            $p = $e->inscripcion->postulante;
+            return [
+                trim(($p?->apellidos ?? '') . ' ' . ($p?->nombre ?? '')) ?: '—',
+                $p?->ci ?? '—',
+                $e->inscripcion->grupo?->numero_grupo ?? 'Sin grupo',
+                $e->promedio,
+            ];
+        })->all();
+
+        $promGeneral = $eval->isNotEmpty() ? round($eval->avg('promedio'), 2) : '—';
+
+        return [
+            'clave'     => 'promedios',
+            'titulo'    => self::REPORTES['promedios'],
+            'columnas'  => ['Apellidos y Nombre', 'CI', 'Grupo', 'Promedio'],
+            'estadoCol' => null,
+            'filas'     => $filas,
+            'resumen'   => [
+                'Promedio general'      => $promGeneral,
+                'Estudiantes evaluados' => $eval->count(),
+            ],
+        ];
+    }
+
+    private function repGruposHabilitados(Gestion $g): array
+    {
+        $grupos = Grupo::where('idGestion', $g->idGestion)
+            ->with(['turno', 'modalidad'])
+            ->orderBy('numero_grupo')
             ->get();
 
-        // 3. Grupos con ocupación
-        $grupos = Grupo::where('idGestion', $gId)->with('turno')->get();
-        foreach ($grupos as $g) {
-            $g->totalInscritos = Inscripcion::where('codigoG', $g->codigoG)->count();
-            $g->pctOcupacion   = $g->capacidad > 0
-                ? round($g->totalInscritos / $g->capacidad * 100)
-                : 0;
-        }
+        $filas = $grupos->map(fn ($gr) => [
+            'Grupo ' . $gr->numero_grupo,
+            $gr->turno?->nombTurno ?? $gr->turno?->nombre ?? '—',
+            $gr->modalidad?->nombModalidad ?? '—',
+            $gr->capacidad,
+            $gr->inscripciones()->count(),
+        ])->all();
 
-        // 4. Promedio por materia (% sobre puntaje máximo del examen)
-        $promPorMateria = DB::table('notas as n')
+        return [
+            'clave'     => 'grupos-habilitados',
+            'titulo'    => self::REPORTES['grupos-habilitados'],
+            'columnas'  => ['Grupo', 'Turno', 'Modalidad', 'Capacidad', 'Inscritos'],
+            'estadoCol' => null,
+            'filas'     => $filas,
+            'resumen'   => ['Grupos habilitados' => $grupos->count()],
+        ];
+    }
+
+    private function repEstadisticasMateria(Gestion $g): array
+    {
+        $stats = DB::table('notas as n')
             ->join('exam_materias as em', 'n.idEx_materia', '=', 'em.idEx_materia')
             ->join('examens as e',        'em.idExamen',    '=', 'e.idExamen')
             ->join('materias as m',       'em.idMateria',   '=', 'm.idMateria')
-            ->where('e.idGestion', $gId)
-            ->selectRaw('m."idMateria", m."nombMateria",
-                AVG(n.calificacion::float / em.puntaje * 100) AS pct_promedio,
-                COUNT(n."idCalif") AS total_notas')
+            ->where('e.idGestion', $g->idGestion)
+            ->selectRaw('m."nombMateria",
+                COUNT(n."idCalif")                                   AS total_notas,
+                ROUND(AVG(n.calificacion), 2)                        AS promedio,
+                MIN(n.calificacion)                                  AS nota_min,
+                MAX(n.calificacion)                                  AS nota_max,
+                SUM(CASE WHEN n.calificacion >= 60 THEN 1 ELSE 0 END) AS aprobadas,
+                SUM(CASE WHEN n.calificacion <  60 THEN 1 ELSE 0 END) AS reprobadas')
             ->groupBy('m.idMateria', 'm.nombMateria')
-            ->orderBy('m.idMateria')
+            ->orderBy('m.nombMateria')
             ->get();
 
-        // 5. Asistencia por grupo
-        $asistenciaGrupos = DB::table('detalle_asistencias as da')
-            ->join('asistencias as a', 'da.idAsistencia', '=', 'a.idAsistencia')
-            ->join('grupos as g',      'a.codigoG',       '=', 'g.codigoG')
-            ->where('g.idGestion', $gId)
-            ->selectRaw('g."codigoG", g.numero_grupo,
-                COUNT(*) AS total,
-                SUM(CASE WHEN da.estado = \'presente\' THEN 1 ELSE 0 END) AS presentes')
-            ->groupBy('g.codigoG', 'g.numero_grupo')
-            ->orderBy('g.numero_grupo')
-            ->get()
-            ->map(function ($row) {
-                $row->pct      = $row->total > 0 ? round($row->presentes / $row->total * 100, 1) : 0.0;
-                $row->ausentes = $row->total - $row->presentes;
-                return $row;
-            });
+        $filas = $stats->map(function ($m) {
+            $pct = $m->total_notas > 0 ? round($m->aprobadas / $m->total_notas * 100) : 0;
+            return [$m->nombMateria, $m->total_notas, $m->promedio, $m->nota_min, $m->nota_max, $m->aprobadas, $m->reprobadas, $pct . '%'];
+        })->all();
 
-        return compact(
-            'totalInscritos', 'aprobados', 'reprobados', 'enCurso',
-            'admisionPorCarrera', 'grupos', 'promPorMateria', 'asistenciaGrupos'
-        );
+        return [
+            'clave'     => 'estadisticas-materia',
+            'titulo'    => self::REPORTES['estadisticas-materia'],
+            'columnas'  => ['Materia', 'Calificaciones', 'Promedio', 'Mín', 'Máx', '≥60', '<60', '% aprob.'],
+            'estadoCol' => null,
+            'filas'     => $filas,
+            'resumen'   => ['Materias con notas' => $stats->count()],
+        ];
     }
 
-    /** Resumen básico de una gestión para la sección comparativa. */
-    private function buildResumenBasico(Gestion $g): object
+    private function repDocentesGrupos(Gestion $g): array
     {
-        $gId = $g->idGestion;
-        return (object) [
-            'gestion'    => $g,
-            'inscritos'  => Inscripcion::where('idGestion', $gId)->count(),
-            'aprobados'  => Inscripcion::where('idGestion', $gId)->where('resultado', 'Aprobado')->count(),
-            'reprobados' => Inscripcion::where('idGestion', $gId)->where('resultado', 'Reprobado')->count(),
-            'admitidos'  => Inscripcion::where('idGestion', $gId)->whereIn('estado_admision', ['Admitido', 'Reubicado'])->count(),
+        $rows = DB::table('materi_grupos as mg')
+            ->join('grupos as g',   'mg.codigoG',  '=', 'g.codigoG')
+            ->join('docentes as d', 'mg.codigoDoc','=', 'd.codigoDoc')
+            ->join('materias as m', 'mg.idMateria','=', 'm.idMateria')
+            ->where('g.idGestion', $g->idGestion)
+            ->selectRaw('g.numero_grupo, d.nombre, d.apellido, m."nombMateria"')
+            ->orderBy('g.numero_grupo')
+            ->orderBy('d.apellido')
+            ->get();
+
+        $filas = $rows->map(fn ($r) => [
+            'Grupo ' . $r->numero_grupo,
+            trim("{$r->nombre} {$r->apellido}"),
+            $r->nombMateria,
+        ])->all();
+
+        return [
+            'clave'     => 'docentes-grupos',
+            'titulo'    => self::REPORTES['docentes-grupos'],
+            'columnas'  => ['Grupo', 'Docente', 'Materia'],
+            'estadoCol' => null,
+            'filas'     => $filas,
+            'resumen'   => ['Asignaciones' => $rows->count()],
+        ];
+    }
+
+    private function repGruposAprobados(Gestion $g): array
+    {
+        $eval = $this->evaluacion($g, null);
+
+        $grupos = $eval
+            ->filter(fn ($e) => $e->inscripcion->codigoG !== null)
+            ->groupBy(fn ($e) => $e->inscripcion->codigoG)
+            ->map(function ($items) {
+                $grupo = $items->first()->inscripcion->grupo;
+                return (object) [
+                    'numero_grupo' => $grupo?->numero_grupo ?? '—',
+                    'aprobados'    => $items->where('resultado', 'Aprobado')->count(),
+                    'reprobados'   => $items->where('resultado', 'Reprobado')->count(),
+                    'total'        => $items->count(),
+                ];
+            })
+            ->sortByDesc('aprobados')
+            ->values();
+
+        $filas = $grupos->map(fn ($g) => [
+            'Grupo ' . $g->numero_grupo,
+            $g->aprobados,
+            $g->reprobados,
+            $g->total,
+        ])->all();
+
+        return [
+            'clave'     => 'grupos-aprobados',
+            'titulo'    => self::REPORTES['grupos-aprobados'],
+            'columnas'  => ['Grupo', 'Aprobados', 'Reprobados', 'Total'],
+            'estadoCol' => null,
+            'filas'     => $filas,
+            'resumen'   => ['Grupos evaluados' => $grupos->count()],
         ];
     }
 }

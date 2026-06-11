@@ -10,8 +10,10 @@ use App\Http\Controllers\PasswordResetController;
 use App\Http\Controllers\DocenteController;
 use App\Http\Controllers\Admin\AsignacionDocenteController;
 use App\Http\Controllers\Admin\AdmisionController;
+use App\Http\Controllers\Admin\ImportPostulanteController;
 use App\Http\Controllers\Admin\ReporteController;
 use App\Http\Controllers\RegistroController;
+use App\Http\Controllers\PostulacionDocenteController;
 use App\Http\Controllers\GrupoController;
 use App\Http\Controllers\InscripcionController;
 use App\Http\Controllers\MateriGrupoController;
@@ -35,11 +37,23 @@ Route::middleware('guest')->group(function () {
     Route::post('/registro', [RegistroController::class, 'store'])->name('registro.store');
 });
 
+// ── Postulación pública de docentes (sin cuenta ni pago) ──────────────────────
+Route::get('/postular-docente',             [PostulacionDocenteController::class, 'index'])->name('postular-docente');
+Route::post('/postular-docente',            [PostulacionDocenteController::class, 'store'])->name('postular-docente.store');
+Route::get('/postular-docente/documentos',  [PostulacionDocenteController::class, 'documentos'])->name('postular-docente.documentos');
+Route::post('/postular-docente/documentos', [PostulacionDocenteController::class, 'storeDocumentos'])->name('postular-docente.documentos.store');
+Route::get('/postular-docente/gracias',     [PostulacionDocenteController::class, 'gracias'])->name('postular-docente.gracias');
+
 // ── Registro de postulante – Pasos 2 y 3 (postulante autenticado) ─────────────
 Route::middleware(['auth', 'role:Postulante'])->group(function () {
     Route::get('/registro/documentos',  [RegistroController::class, 'showDocumentos'])->name('registro.documentos');
     Route::post('/registro/documentos', [RegistroController::class, 'storeDocumentos'])->name('registro.documentos.store');
-    Route::get('/registro/pago',        [RegistroController::class, 'showPago'])->name('registro.pago');
+
+    // Paso 3 – Pago con Stripe Checkout
+    Route::get('/registro/pago',           [RegistroController::class, 'showPago'])->name('registro.pago');
+    Route::post('/registro/pago/checkout', [RegistroController::class, 'crearCheckout'])->name('registro.pago.checkout');
+    Route::get('/registro/pago/exito',     [RegistroController::class, 'pagoExito'])->name('registro.pago.exito');
+    Route::get('/registro/pago/cancelado', [RegistroController::class, 'pagoCancelado'])->name('registro.pago.cancelado');
 });
 
 // ── Ruta /dashboard: resuelve el destino según el rol del usuario ─────────────
@@ -84,6 +98,12 @@ Route::middleware(['auth', 'role:Administrador,Autoridades,Coordinador'])
         Route::get('/importar-personal',           [DocenteController::class, 'importar'])->name('importar-personal');
         Route::post('/importar-personal',          [DocenteController::class, 'importarStore'])->name('importar-personal.store');
         Route::get('/importar-personal/plantilla', [DocenteController::class, 'plantilla'])->name('importar-personal.plantilla');
+
+        // Carga masiva de postulantes + cálculo/creación automática de grupos
+        Route::get('/importar-postulantes',           [ImportPostulanteController::class, 'form'])->name('importar-postulantes');
+        Route::post('/importar-postulantes',          [ImportPostulanteController::class, 'procesar'])->name('importar-postulantes.procesar');
+        Route::post('/importar-postulantes/confirmar',[ImportPostulanteController::class, 'confirmar'])->name('importar-postulantes.confirmar');
+        Route::get('/importar-postulantes/plantilla', [ImportPostulanteController::class, 'plantilla'])->name('importar-postulantes.plantilla');
 
         // CRUD Docentes
         Route::post('/docentes/{docente}/contratar', [DocenteController::class, 'contratar'])->name('docentes.contratar');
@@ -133,10 +153,10 @@ Route::middleware(['auth', 'role:Administrador,Autoridades,Coordinador'])
         Route::get('/roles', [RolController::class, 'index'])->name('roles.index');
         Route::put('/roles/{rol}/permisos', [RolController::class, 'actualizarPermisos'])->name('roles.permisos.update');
 
-        // CU14 – Reportes y analíticas institucionales
-        Route::get('/reportes',                        [ReporteController::class, 'index'])->name('reportes.index');
-        Route::get('/reportes/{gestion}/csv',          [ReporteController::class, 'exportarCsv'])->name('reportes.csv');
-        Route::get('/reportes/{gestion}/imprimir',     [ReporteController::class, 'imprimir'])->name('reportes.imprimir');
+        // CU14 – Reportes y analíticas institucionales (panel con filtros)
+        Route::get('/reportes',        [ReporteController::class, 'index'])->name('reportes.index');
+        Route::get('/reportes/export', [ReporteController::class, 'export'])->name('reportes.export');
+        Route::get('/reportes/pdf',    [ReporteController::class, 'pdf'])->name('reportes.pdf');
 
         // CU13 – Admisión y cupos por carrera
         Route::get('/admision',           [AdmisionController::class, 'index'])->name('admision.index');

@@ -48,6 +48,10 @@
     <div class="max-w-7xl mx-auto px-6 lg:px-12 h-16 flex items-center justify-between">
         <a href="{{ route('home') }}" class="text-xl font-bold text-ficct-primary tracking-tight">FICCT Portal</a>
         <div class="flex items-center gap-3">
+            <a href="{{ route('postular-docente') }}"
+               class="hidden sm:inline text-sm font-medium text-gray-600 hover:text-ficct-primary px-4 py-2 rounded-lg transition hover:bg-gray-100">
+                Postular como Docente
+            </a>
             <a href="{{ route('login') }}"
                class="text-sm font-medium text-gray-600 hover:text-ficct-primary px-4 py-2 rounded-lg transition hover:bg-gray-100">
                 Iniciar Sesión
@@ -221,6 +225,7 @@
                 <ul class="space-y-2 text-sm">
                     <li><a href="{{ route('login') }}" class="text-white/60 hover:text-white transition">Iniciar Sesión</a></li>
                     <li><a href="{{ route('registro') }}" class="text-white/60 hover:text-white transition">Inscribirme</a></li>
+                    <li><a href="{{ route('postular-docente') }}" class="text-white/60 hover:text-white transition">Postular como Docente</a></li>
                     <li><a href="{{ route('verificar-pago') }}" class="text-white/60 hover:text-white transition">Verificar Pago</a></li>
                 </ul>
             </div>

@@ -59,62 +59,86 @@
         </div>
 
         <div class="p-8 flex flex-col items-center text-center gap-6">
-            {{-- Ícono --}}
-            <div class="w-20 h-20 rounded-full bg-amber-100 flex items-center justify-center">
-                <svg class="w-10 h-10 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-                          d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                </svg>
-            </div>
 
-            <div>
-                <h2 class="text-2xl font-bold text-gray-800">Módulo de pago en desarrollo</h2>
-                <p class="text-gray-500 mt-2 max-w-md leading-relaxed">
-                    El módulo de pago estará disponible próximamente. Tu inscripción ha sido registrada correctamente con estado <strong class="text-amber-600">Pendiente</strong>.
-                </p>
-            </div>
+            @if(session('error'))
+                <div class="w-full p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">{{ session('error') }}</div>
+            @endif
 
-            {{-- Resumen del postulante --}}
-            <div class="w-full bg-gray-50 rounded-xl border border-gray-200 p-5 text-left space-y-3">
-                <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Resumen de inscripción</p>
-                <div class="flex justify-between text-sm">
-                    <span class="text-gray-500">Postulante</span>
-                    <span class="font-semibold text-gray-800">{{ $postulante->nombre }} {{ $postulante->apellidos }}</span>
+            @if($yaPagado)
+                {{-- Ya pagó --}}
+                <div class="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center">
+                    <svg class="w-10 h-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
                 </div>
-                <div class="flex justify-between text-sm">
-                    <span class="text-gray-500">CI</span>
-                    <span class="font-semibold text-gray-800">{{ $postulante->ci }}</span>
+                <div>
+                    <h2 class="text-2xl font-bold text-gray-800">Inscripción pagada</h2>
+                    <p class="text-gray-500 mt-2">Tu pago ya fue registrado. ¡Bienvenido!</p>
                 </div>
-                <div class="flex justify-between text-sm">
-                    <span class="text-gray-500">Estado</span>
-                    <span class="inline-flex items-center gap-1 text-xs font-semibold bg-amber-100 text-amber-700 px-2.5 py-1 rounded-full">
-                        <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
-                        Pendiente de pago
-                    </span>
-                </div>
-            </div>
-
-            {{-- Info de pago --}}
-            <div class="w-full bg-blue-50 border border-blue-200 rounded-xl p-5 text-left">
-                <p class="text-sm font-semibold text-blue-800 mb-2">¿Cómo pagar?</p>
-                <ul class="text-sm text-blue-700 space-y-1 list-disc list-inside">
-                    <li>Transfiere a la cuenta institucional FICCT</li>
-                    <li>Sube el comprobante en el módulo "Verificar Pago"</li>
-                    <li>El administrador validará tu pago en 24–48 horas</li>
-                </ul>
-            </div>
-
-            {{-- Acciones --}}
-            <div class="flex flex-col sm:flex-row gap-3 w-full">
                 <a href="{{ route('postulante.dashboard') }}"
-                   class="flex-1 text-center px-6 py-3 bg-[#001e40] hover:bg-[#003366] text-white font-semibold rounded-lg transition text-sm">
+                   class="w-full text-center px-6 py-3 bg-[#001e40] hover:bg-[#003366] text-white font-semibold rounded-lg transition text-sm">
                     Ir a mi Panel
                 </a>
-                <a href="{{ route('verificar-pago') }}"
-                   class="flex-1 text-center px-6 py-3 border border-gray-300 hover:bg-gray-50 text-gray-700 font-semibold rounded-lg transition text-sm">
-                    Verificar Pago
+            @else
+                {{-- Ícono --}}
+                <div class="w-20 h-20 rounded-full bg-blue-100 flex items-center justify-center">
+                    <svg class="w-10 h-10 text-[#001e40]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                              d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+                    </svg>
+                </div>
+
+                <div>
+                    <h2 class="text-2xl font-bold text-gray-800">Pago de inscripción</h2>
+                    <p class="text-gray-500 mt-2 max-w-md leading-relaxed">
+                        Completa el pago seguro con tarjeta para confirmar tu inscripción.
+                    </p>
+                </div>
+
+                {{-- Resumen --}}
+                <div class="w-full bg-gray-50 rounded-xl border border-gray-200 p-5 text-left space-y-3">
+                    <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Resumen</p>
+                    <div class="flex justify-between text-sm">
+                        <span class="text-gray-500">Postulante</span>
+                        <span class="font-semibold text-gray-800">{{ $postulante->nombre }} {{ $postulante->apellidos }}</span>
+                    </div>
+                    <div class="flex justify-between text-sm">
+                        <span class="text-gray-500">CI</span>
+                        <span class="font-semibold text-gray-800">{{ $postulante->ci }}</span>
+                    </div>
+                    @if($gestion)
+                    <div class="flex justify-between text-sm">
+                        <span class="text-gray-500">Gestión</span>
+                        <span class="font-semibold text-gray-800">{{ $gestion->nombre }}</span>
+                    </div>
+                    @endif
+                    <div class="flex justify-between text-sm border-t border-gray-200 pt-3">
+                        <span class="text-gray-500">Monto a pagar</span>
+                        <span class="font-bold text-[#001e40] text-lg">{{ number_format($monto, 2) }} {{ $moneda }}</span>
+                    </div>
+                </div>
+
+                {{-- Botón de pago Stripe --}}
+                <form method="POST" action="{{ route('registro.pago.checkout') }}" class="w-full">
+                    @csrf
+                    <button type="submit"
+                            class="w-full inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-[#635bff] hover:bg-[#5147e6] text-white font-semibold rounded-lg transition text-sm shadow-sm">
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M13.5 9.5c0-.6.5-.9 1.3-.9 1.2 0 2.6.4 3.7 1V6.1c-1.3-.5-2.5-.7-3.7-.7-3 0-5 1.6-5 4.2 0 4.1 5.6 3.5 5.6 5.3 0 .7-.6 1-1.5 1-1.3 0-3-.5-4.3-1.3v3.5c1.4.6 2.9.9 4.3.9 3.1 0 5.2-1.5 5.2-4.2 0-4.4-5.6-3.7-5.6-5.5z"/>
+                        </svg>
+                        Pagar {{ number_format($monto, 2) }} {{ $moneda }} con Stripe
+                    </button>
+                </form>
+
+                <p class="text-xs text-gray-400">
+                    Pago seguro procesado por Stripe. Modo de prueba: usa la tarjeta
+                    <span class="font-mono bg-gray-100 px-1 rounded">4242 4242 4242 4242</span>, cualquier fecha futura y CVC.
+                </p>
+
+                <a href="{{ route('postulante.dashboard') }}" class="text-sm text-gray-500 hover:underline">
+                    Pagar más tarde — ir a mi panel
                 </a>
-            </div>
+            @endif
         </div>
     </div>
 </div>

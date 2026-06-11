@@ -50,9 +50,13 @@ class AuthController extends Controller
         }
 
         if ($user->bloqueado_hasta && now()->lt($user->bloqueado_hasta)) {
-            $minutosRestantes = now()->diffInMinutes($user->bloqueado_hasta);
+            $segundosRestantes = (int) ceil(abs(now()->diffInSeconds($user->bloqueado_hasta)));
+            $tiempo = $segundosRestantes >= 60
+                ? ceil($segundosRestantes / 60) . ' minuto(s)'
+                : $segundosRestantes . ' segundo(s)';
+
             return back()
-                ->withErrors(['correo' => "Demasiados intentos fallidos. Intente nuevamente en {$minutosRestantes} minutos."])
+                ->withErrors(['correo' => "Demasiados intentos fallidos. Intente nuevamente en {$tiempo}."])
                 ->withInput($request->only('correo'));
         }
 
@@ -61,9 +65,18 @@ class AuthController extends Controller
 
         if (!Auth::attempt($credentials, $remember)) {
             $user->intentos_fallidos++;
-            if ($user->intentos_fallidos >= 3) {
-                $user->bloqueado_hasta = now()->addMinutes(15);
+
+            // Bloqueo progresivo cada 3 intentos fallidos: 30s → 2min → 15min.
+            if ($user->intentos_fallidos % 3 === 0) {
+                $nivel    = intdiv($user->intentos_fallidos, 3);
+                $segundos = match ($nivel) {
+                    1       => 30,    // 1er bloqueo: 30 segundos
+                    2       => 120,   // 2do bloqueo: 2 minutos
+                    default => 900,   // 3ro en adelante: 15 minutos
+                };
+                $user->bloqueado_hasta = now()->addSeconds($segundos);
             }
+
             $user->save();
 
             $this->bitacora->registrar(

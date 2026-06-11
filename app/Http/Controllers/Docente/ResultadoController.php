@@ -9,6 +9,7 @@ use App\Models\Grupo;
 use App\Models\Inscripcion;
 use App\Models\Nota;
 use App\Services\BitacoraService;
+use App\Services\ResultadoAcademicoService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -16,6 +17,8 @@ use Illuminate\View\View;
 
 class ResultadoController extends Controller
 {
+    public function __construct(private ResultadoAcademicoService $resultado) {}
+
     /** CU12 – Lista de grupos con su estado de procesamiento. */
     public function index(): View
     {
@@ -113,53 +116,35 @@ class ResultadoController extends Controller
             ->whereIn('idEx_materia', $examMateriasIds)
             ->get();
 
-        // Calcular resultados por estudiante
+        // Ponderaciones por exam_materia (para el promedio ponderado)
+        $ponderaciones = $examMaterias->mapWithKeys(
+            fn ($em) => [$em->idEx_materia => (float) $em->examen->ponderacion]
+        )->toArray();
+
+        // Calcular resultados por estudiante (regla única: mín. 60 por nota)
         $resultados = [];
         foreach ($inscripciones as $insc) {
-            $notasInsc  = $notasAll->where('idInscripcion', $insc->idInscripcion);
-            $totalNotas = $notasInsc->count();
-            $completo   = $expectedCount > 0 && $totalNotas >= $expectedCount;
+            $notasInsc = $notasAll->where('idInscripcion', $insc->idInscripcion);
 
             // Promedio por examen (para la columna visual)
             $porExamen = [];
             foreach ($examenes as $ex) {
-                $idsEm      = $examMaterias->where('idExamen', $ex->idExamen)->pluck('idEx_materia')->toArray();
+                $idsEm       = $examMaterias->where('idExamen', $ex->idExamen)->pluck('idEx_materia')->toArray();
                 $notasExamen = $notasInsc->whereIn('idEx_materia', $idsEm);
                 $porExamen[$ex->idExamen] = $notasExamen->isNotEmpty()
                     ? round($notasExamen->avg('calificacion'), 2)
                     : null;
             }
 
-            // Promedio ponderado final (misma fórmula que CU11)
-            $sumW = 0.0;
-            $sumV = 0.0;
-            foreach ($examMaterias as $em) {
-                $nota = $notasInsc->where('idEx_materia', $em->idEx_materia)->first();
-                if ($nota) {
-                    $pond  = (float) $em->examen->ponderacion;
-                    $sumW += $pond;
-                    $sumV += (float) $nota->calificacion * $pond;
-                }
-            }
-            $promedio = $sumW > 0 ? round($sumV / $sumW, 2) : null;
-
-            if ($promedio !== null) {
-                if ($completo) {
-                    $resultado = $promedio >= 60 ? 'Aprobado' : 'Reprobado';
-                } else {
-                    $resultado = 'Incompleto';
-                }
-            } else {
-                $resultado = null;
-            }
+            $eval = $this->resultado->evaluar($notasInsc, $expectedCount, $ponderaciones);
 
             $resultados[$insc->idInscripcion] = [
-                'promedio'      => $promedio,
-                'resultado'     => $resultado,
-                'completo'      => $completo,
-                'porExamen'     => $porExamen,
-                'totalNotas'    => $totalNotas,
-                'guardado'      => $insc->resultado !== null,
+                'promedio'   => $eval['promedio'],
+                'resultado'  => $eval['resultado'],
+                'completo'   => $eval['completo'],
+                'porExamen'  => $porExamen,
+                'totalNotas' => $eval['total'],
+                'guardado'   => $insc->resultado !== null,
             ];
         }
 
@@ -219,6 +204,10 @@ class ResultadoController extends Controller
             );
         }
 
+        $ponderaciones = $examMaterias->mapWithKeys(
+            fn ($em) => [$em->idEx_materia => (float) $em->examen->ponderacion]
+        )->toArray();
+
         $procesados  = 0;
         $incompletos = 0;
         $sinNotas    = 0;
@@ -231,37 +220,21 @@ class ResultadoController extends Controller
                 continue;
             }
 
-            $totalNotas = $notasInsc->count();
-            $completo   = $totalNotas >= $expectedCount;
-
-            $sumW = 0.0;
-            $sumV = 0.0;
-            foreach ($examMaterias as $em) {
-                $nota = $notasInsc->where('idEx_materia', $em->idEx_materia)->first();
-                if ($nota) {
-                    $pond  = (float) $em->examen->ponderacion;
-                    $sumW += $pond;
-                    $sumV += (float) $nota->calificacion * $pond;
-                }
-            }
-
-            $promedio  = $sumW > 0 ? round($sumV / $sumW, 2) : null;
-            $resultado = $completo
-                ? ($promedio >= 60 ? 'Aprobado' : 'Reprobado')
-                : 'Incompleto';
+            // Regla única: cada nota >= 60 (mín. < 60 ⇒ Reprobado)
+            $eval = $this->resultado->evaluar($notasInsc, $expectedCount, $ponderaciones);
 
             $insc->update([
-                'promedio'  => $promedio,
-                'resultado' => $resultado,
+                'promedio'  => $eval['promedio'],
+                'resultado' => $eval['resultado'],
             ]);
 
             BitacoraService::registrar(
                 "CU12 – Resultado procesado: Inscripción #{$insc->idInscripcion}, " .
-                "Grupo #{$grupo}, Promedio: {$promedio}, Resultado: {$resultado}."
+                "Grupo #{$grupo}, Promedio: {$eval['promedio']}, Resultado: {$eval['resultado']}."
             );
 
             $procesados++;
-            if (! $completo) {
+            if (! $eval['completo']) {
                 $incompletos++;
             }
         }

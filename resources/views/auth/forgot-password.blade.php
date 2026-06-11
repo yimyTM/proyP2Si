@@ -45,10 +45,6 @@
                 <a href="{{ route('login') }}" class="font-medium hover:underline" style="color: #283342;">← Volver al inicio de sesión</a>
             </p>
         </div>
-
-        <p class="mt-6 text-center text-xs text-gray-400">
-            Desarrollo local: con <code class="bg-gray-200 px-1 rounded">MAIL_MAILER=log</code> el enlace aparece en <code class="bg-gray-200 px-1 rounded">storage/logs/laravel.log</code>
-        </p>
     </div>
 </body>
 </html>

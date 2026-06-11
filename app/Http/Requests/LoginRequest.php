@@ -14,7 +14,10 @@ class LoginRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'correo'   => ['required', 'email:rfc,dns'],
+            // Sin 'dns': muchos correos institucionales (@ficct.edu.bo, @estudiante.bo)
+            // no tienen registros MX, y exigir DNS impediría iniciar sesión a cuentas válidas
+            // (además requeriría conexión a internet en cada login).
+            'correo'   => ['required', 'email:rfc'],
             'password' => ['required', 'string', 'min:6'],
         ];
     }

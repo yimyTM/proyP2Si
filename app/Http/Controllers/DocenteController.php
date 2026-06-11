@@ -378,11 +378,11 @@ class DocenteController extends Controller
                         'nombre'      => $nombre,
                         'apellido'    => $apellido,
                         'ci'          => $ci,
-                        'correo'      => $correo ?: null,
                         'nroTelefono' => $telefono,
                     ]);
+                    // El correo se pasa explícitamente: la tabla docentes no lo almacena.
                     if ($correo) {
-                        $passwordPlano = CuentaProvisionaService::crearCuentaDocente($docente);
+                        $passwordPlano = CuentaProvisionaService::crearCuentaDocente($docente, $correo);
                     }
                 } else {
                     $passwordPlano = CuentaProvisionaService::crearCuentaPersonal(

@@ -1,59 +1,196 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# FICCT Admisión — Sistema de Admisión del Curso Preuniversitario
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Sistema web para gestionar el proceso de admisión del **Curso Preuniversitario (CUP)** de la Facultad de Ingeniería en Ciencias de la Computación y Telecomunicaciones (**FICCT – UAGRM**): desde la inscripción del postulante (con pago en línea) y la postulación/contratación de docentes, hasta la conformación de grupos, el registro de calificaciones y la generación de reportes institucionales.
 
-## About Laravel
+---
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## 🧱 Stack tecnológico
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+| Capa | Tecnología |
+|------|------------|
+| Backend | PHP **8.2+**, Laravel **12** |
+| Base de datos | **PostgreSQL** |
+| Frontend | Blade + **Tailwind CSS** (CDN) / Vite + Tailwind 4 |
+| Pagos | **Stripe** (`stripe/stripe-php`) — Stripe Checkout |
+| PDF | **dompdf** (`barryvdh/laravel-dompdf`) |
+| Autenticación | Sesiones de Laravel + RBAC propio (roles y permisos) |
+| Correo | SMTP (Gmail) — recuperación de contraseña |
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+---
 
-## Learning Laravel
+## ✅ Requisitos previos
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+- PHP 8.2 o superior (extensiones: `pdo_pgsql`, `zip`, `mbstring`, `fileinfo`)
+- Composer 2
+- PostgreSQL 14+
+- Node.js 18+ (opcional; las vistas ya usan Tailwind por CDN)
+- Una cuenta de **Stripe** en modo test (claves `pk_test_…` / `sk_test_…`)
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+---
 
-## Laravel Sponsors
+## 🚀 Instalación
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+```bash
+# 1. Clonar e instalar dependencias
+git clone <repo>
+cd proyP2Si
+composer install
 
-### Premium Partners
+# 2. Configurar el entorno
+cp .env.example .env          # o crea el .env y copia las variables de abajo
+php artisan key:generate
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+# 3. Crear la base de datos en PostgreSQL
+#    (por defecto el proyecto usa la BD "dbCup")
+createdb dbCup                # o créala con tu cliente preferido
 
-## Contributing
+# 4. Migrar y poblar con datos semilla
+php artisan migrate
+php artisan db:seed --class=poblacionCompleta
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+# 5. (opcional) Compilar assets con Vite
+npm install && npm run build
 
-## Code of Conduct
+# 6. Levantar el servidor
+php artisan serve
+# → http://localhost:8000
+```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+---
 
-## Security Vulnerabilities
+## ⚙️ Variables de entorno clave (`.env`)
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+```env
+APP_NAME="FICCT Admisión"
+APP_URL=http://localhost:8000
+APP_LOCALE=es
 
-## License
+# Base de datos PostgreSQL
+DB_CONNECTION=pgsql
+DB_HOST=127.0.0.1
+DB_PORT=5432
+DB_DATABASE=dbCup
+DB_USERNAME=postgres
+DB_PASSWORD=********
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+# Sesión (la cookie muere al cerrar el navegador)
+SESSION_DRIVER=database
+SESSION_LIFETIME=120
+SESSION_EXPIRE_ON_CLOSE=true
+
+# Stripe (modo test)
+STRIPE_KEY=pk_test_xxxxx
+STRIPE_SECRET=sk_test_xxxxx
+STRIPE_CURRENCY=usd                 # moneda del cobro
+STRIPE_MONTO_INSCRIPCION=15000      # monto en centavos (15000 = 150.00 USD)
+
+# Correo (recuperación de contraseña)
+MAIL_MAILER=smtp
+MAIL_HOST=smtp.gmail.com
+MAIL_PORT=587
+MAIL_ENCRYPTION=tls
+MAIL_USERNAME=tucorreo@gmail.com
+MAIL_PASSWORD=clave_de_aplicacion   # App Password de Gmail, no la contraseña normal
+MAIL_FROM_ADDRESS="tucorreo@gmail.com"
+MAIL_FROM_NAME="Sistema de Admisión FICCT"
+```
+
+---
+
+## 👥 Roles del sistema
+
+El acceso se controla con **RBAC** (roles + permisos asignables desde el panel de *Roles y Permisos*).
+
+| Rol | Acceso principal |
+|-----|------------------|
+| **Administrador** | Acceso total al sistema |
+| **Autoridades** | Reportes y estadísticas (lectura) |
+| **Coordinador** | Gestión académica: grupos, docentes, postulantes |
+| **Docente** | Registro de asistencia, notas y carga horaria propia |
+| **Postulante** | Inscripción, expediente, pago y consulta de sus notas |
+
+### Credenciales de prueba (datos semilla)
+
+| Rol | Correo | Contraseña |
+|-----|--------|------------|
+| Administrador | `yimyt771@gmail.com` | `tarqui231A@` |
+| Postulante (con notas) | `dflores@estudiante.bo` | *definida en el seeder* |
+
+> Las contraseñas de las demás cuentas están en `database/seeders/poblacionCompleta.php`. Si necesitas restablecer una, usa el panel de administración o `php artisan tinker`.
+
+---
+
+## 💳 Probar la pasarela de pago (Stripe test)
+
+1. Regístrate como postulante desde **Inscribirme** y avanza hasta el **Paso 3 – Pago**.
+2. Pulsa **Pagar con Stripe** y usa una tarjeta de prueba:
+
+| Resultado | Tarjeta | Fecha | CVC |
+|-----------|---------|-------|-----|
+| ✅ Aprobado | `4242 4242 4242 4242` | cualquiera futura | cualquiera |
+| 🔐 Requiere 3D Secure | `4000 0025 0000 3155` | " | " |
+| ❌ Rechazada | `4000 0000 0000 9995` | " | " |
+
+Al confirmarse el pago se registra el **Pago + Comprobante** y la inscripción pasa a estado **Habilitado**.
+
+---
+
+## 📦 Módulos / Casos de uso implementados
+
+- **Autenticación** — login con bloqueo progresivo por intentos fallidos (30 s → 2 min → 15 min) y recuperación de contraseña por correo.
+- **Roles y Permisos** — asignación dinámica de permisos por rol; las vistas se adaptan según los permisos.
+- **Landing pública** — inscripción de postulantes y **postulación de docentes**.
+- **Inscripción de postulantes** — datos personales → documentos → **pago con Stripe** → inscrito.
+- **Postulación / Contratación de docentes (CU15)** — registro de formación y requisitos; el administrador valida y **contrata** (recién ahí se crea la cuenta del docente).
+- **Carga masiva por CSV** — de postulantes (con **cálculo automático de grupos**, máx. 70 por grupo) y de personal/docentes; con vista previa y confirmación.
+- **Grupos, turnos, aulas y asignación docente (CU06/07)** — un docente solo puede asignarse a un grupo si está **contratado** en la gestión.
+- **Admisión por carrera (CU13)** — distribución de admitidos y reubicados según cupos.
+- **Calificaciones y resultados (CU11/CU12)** — regla académica única: **cada materia debe alcanzar 60**; si una nota es menor, el postulante **reprueba**.
+- **Panel de reportes (CU14)** — selector de 8 reportes con filtros (gestión / reporte / grupo) y exportación a **PDF** y **CSV**:
+  1. Lista general de postulantes · 2. Aprobados · 3. Reprobados · 4. Promedios generales · 5. Grupos habilitados · 6. Estadísticas por materia · 7. Docentes por grupos · 8. Grupos con más aprobados.
+- **Resultados del postulante (CU16)** — el estudiante consulta sus notas por materia y parcial desde su panel.
+- **Bitácora** — registro de eventos relevantes del sistema.
+
+---
+
+## 🗂️ Estructura relevante
+
+```
+app/
+ ├─ Http/Controllers/        # Controladores por módulo (Admin/, Docente/, …)
+ ├─ Http/Middleware/         # CheckRole (RBAC), NoCacheHeaders
+ ├─ Models/                  # Modelos Eloquent
+ └─ Services/                # ResultadoAcademicoService, SpreadsheetParser,
+                             #   CuentaProvisionaService, BitacoraService
+config/services.php          # Configuración de Stripe
+database/
+ ├─ migrations/              # Esquema de la BD
+ └─ seeders/poblacionCompleta.php   # Datos semilla (estado congelado)
+resources/views/             # Vistas Blade (admin/, docente/, postulante/, registro/, …)
+routes/web.php               # Rutas de la aplicación
+```
+
+---
+
+## 🛠️ Comandos útiles
+
+```bash
+php artisan serve                 # Servidor de desarrollo
+php artisan migrate:fresh --seed  # Reconstruir BD + datos semilla
+php artisan db:seed --class=poblacionCompleta
+php artisan config:clear          # Limpiar caché de configuración (tras editar .env)
+php artisan route:list            # Ver todas las rutas
+php artisan tinker                # Consola interactiva
+```
+
+---
+
+## 📝 Notas
+
+- El **esquema de base de datos y los datos semilla están congelados** (`poblacionCompleta`); las funcionalidades se construyen sobre esa base.
+- El proyecto usa **Tailwind por CDN** en las vistas, por lo que `npm run build` es opcional para desarrollo.
+- Tras editar el `.env`, ejecuta `php artisan config:clear` para que los cambios tomen efecto.
+
+---
+
+> Proyecto académico — Sistemas de Información, 2º Parcial. FICCT, UAGRM.
