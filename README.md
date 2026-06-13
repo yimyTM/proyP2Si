@@ -138,17 +138,18 @@ Al confirmarse el pago se registra el **Pago + Comprobante** y la inscripción p
 ## 📦 Módulos / Casos de uso implementados
 
 - **Autenticación** — login con bloqueo progresivo por intentos fallidos (30 s → 2 min → 15 min) y recuperación de contraseña por correo.
-- **Roles y Permisos** — asignación dinámica de permisos por rol; las vistas se adaptan según los permisos.
+- **Roles y Permisos** — asignación dinámica de permisos por rol agrupados en **5 módulos** (Seguridad, Inscripción, Planificación, Evaluación, Reportes) mediante acordeón; las vistas se adaptan según los permisos.
 - **Landing pública** — inscripción de postulantes y **postulación de docentes**.
-- **Inscripción de postulantes** — datos personales → documentos → **pago con Stripe** → inscrito.
+- **Inscripción de postulantes** — datos personales + **foto** → documentos → **pago con Stripe** → inscrito.
 - **Postulación / Contratación de docentes (CU15)** — registro de formación y requisitos; el administrador valida y **contrata** (recién ahí se crea la cuenta del docente).
 - **Carga masiva por CSV** — de postulantes (con **cálculo automático de grupos**, máx. 70 por grupo) y de personal/docentes; con vista previa y confirmación.
 - **Grupos, turnos, aulas y asignación docente (CU06/07)** — un docente solo puede asignarse a un grupo si está **contratado** en la gestión.
-- **Admisión por carrera (CU13)** — distribución de admitidos y reubicados según cupos.
+- **Admisión por carrera (CU13)** — distribución automática: mejores promedios van a su **1ª opción** (Admitido), luego a la **2ª opción** (Reubicado); quienes no alcanzan cupo o puntaje quedan como **Reprobado**.
 - **Calificaciones y resultados (CU11/CU12)** — regla académica única: **cada materia debe alcanzar 60**; si una nota es menor, el postulante **reprueba**.
 - **Panel de reportes (CU14)** — selector de 8 reportes con filtros (gestión / reporte / grupo) y exportación a **PDF** y **CSV**:
   1. Lista general de postulantes · 2. Aprobados · 3. Reprobados · 4. Promedios generales · 5. Grupos habilitados · 6. Estadísticas por materia · 7. Docentes por grupos · 8. Grupos con más aprobados.
 - **Resultados del postulante (CU16)** — el estudiante consulta sus notas por materia y parcial desde su panel.
+- **Expedientes digitales** — el admin/coordinador puede validar documentos de cada postulante individualmente o con **selección múltiple** (acción masiva), y descargar la foto y cada archivo del expediente directamente desde el panel.
 - **Bitácora** — registro de eventos relevantes del sistema.
 
 ---
@@ -178,7 +179,10 @@ routes/web.php               # Rutas de la aplicación
 php artisan serve                 # Servidor de desarrollo
 php artisan migrate:fresh --seed  # Reconstruir BD + datos semilla
 php artisan db:seed --class=poblacionCompleta
+php artisan storage:link          # Exponer storage/app/public como public/storage (fotos y documentos)
 php artisan config:clear          # Limpiar caché de configuración (tras editar .env)
+php artisan config:cache          # Cachear configuración (producción)
+php artisan route:cache           # Cachear rutas (producción)
 php artisan route:list            # Ver todas las rutas
 php artisan tinker                # Consola interactiva
 ```
@@ -190,6 +194,8 @@ php artisan tinker                # Consola interactiva
 - El **esquema de base de datos y los datos semilla están congelados** (`poblacionCompleta`); las funcionalidades se construyen sobre esa base.
 - El proyecto usa **Tailwind por CDN** en las vistas, por lo que `npm run build` es opcional para desarrollo.
 - Tras editar el `.env`, ejecuta `php artisan config:clear` para que los cambios tomen efecto.
+- Los **archivos subidos** (fotos y documentos de expedientes) se almacenan en `storage/app/public/`. Es obligatorio ejecutar `php artisan storage:link` una sola vez tras el despliegue para que sean accesibles desde el navegador.
+- En producción (**EC2 con EBS**) el storage local persiste entre reinicios. Si en el futuro se necesita escalar a múltiples instancias, migrar a `FILESYSTEM_DISK=s3` en el `.env` y configurar las credenciales de AWS.
 
 ---
 

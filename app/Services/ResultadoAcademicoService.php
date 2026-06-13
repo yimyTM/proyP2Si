@@ -7,15 +7,6 @@ use App\Models\Inscripcion;
 use App\Models\Nota;
 use Illuminate\Support\Collection;
 
-/**
- * Criterio académico ÚNICO del sistema (CU12 y reportes CU14).
- *
- * Regla de aprobación: cada nota (cada parcial de cada materia) debe ser >= 60.
- *  - Si alguna nota < 60        => 'Reprobado' (no importa el resto).
- *  - Si están todas y todas >=60 => 'Aprobado'.
- *  - Si faltan notas (sin reprobar) => 'Incompleto' (sigue cursando).
- *  - Si no hay ninguna nota       => null (cursando, sin evaluar).
- */
 class ResultadoAcademicoService
 {
     public const NOTA_MINIMA = 60;

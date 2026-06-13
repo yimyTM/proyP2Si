@@ -19,7 +19,68 @@ class PostulanteController extends Controller
 
     public function dashboard(): View
     {
-        return view('postulante.dashboard');
+        $user       = Auth::user();
+        $postulante = $user->postulante;
+
+        $pago            = null;
+        $inscripcion     = null;
+        $documentos      = collect();
+        $examenes        = collect();
+        $materias        = collect();
+        $carreraAsignada = null;
+        $opcionAsignada  = null;
+
+        if ($postulante) {
+            $pago = $postulante->pagos()->latest()->first();
+
+            $inscripcion = $postulante->inscripciones()
+                ->with([
+                    'gestion',
+                    'grupo',
+                    'carrerasInscritas.carrera.modalidad',
+                    'carreraAsignada.modalidad',
+                    'notas.examMateria.examen',
+                    'notas.examMateria.materia',
+                ])
+                ->latest('idInscripcion')
+                ->first();
+
+            $documentos = $postulante->requisitos()
+                ->with('requisito')
+                ->get();
+
+            if ($inscripcion && $inscripcion->notas->isNotEmpty()) {
+                $examenes = $inscripcion->notas
+                    ->pluck('examMateria.examen')
+                    ->unique('idExamen')
+                    ->sortBy('nroParcial')
+                    ->values();
+
+                $materias = $inscripcion->notas
+                    ->groupBy(fn($n) => $n->examMateria->idMateria)
+                    ->map(function ($notas) {
+                        $first = $notas->first();
+                        return (object)[
+                            'nombre'    => $first->examMateria->materia->nombMateria,
+                            'parciales' => $notas->keyBy(fn($n) => $n->examMateria->examen->nroParcial),
+                        ];
+                    })
+                    ->sortBy('nombre')
+                    ->values();
+
+                $carreraAsignada = $inscripcion->carreraAsignada;
+                if ($carreraAsignada) {
+                    $opcionRow      = $inscripcion->carrerasInscritas->firstWhere('codCarrera', $carreraAsignada->codCarrera);
+                    $opcionAsignada = $opcionRow?->prioridad;
+                }
+            }
+        }
+
+        return view('postulante.dashboard', compact(
+            'postulante', 'pago', 'inscripcion',
+            'documentos', 'examenes', 'materias',
+            'carreraAsignada', 'opcionAsignada'
+        ));
     }
 
     // ── CU16: Consultar estado de admisión y calificaciones ───────────────────
@@ -160,6 +221,9 @@ class PostulanteController extends Controller
             'usuario',
             'pagos',
             'inscripciones.carrerasInscritas.carrera',
+            'inscripciones.carreraAsignada.modalidad',
+            'inscripciones.notas.examMateria.examen',
+            'inscripciones.notas.examMateria.materia',
             'requisitos.requisito',
         ]);
 

@@ -14,6 +14,7 @@ return new class extends Migration
         Schema::create('permisos', function (Blueprint $table) {
             $table->id('idPermiso');
             $table->string('nombrePermiso',100);
+            $table->foreignId('idModulo')->constrained('modulos','idModulo')->onDelete('cascade');
             $table->timestamps();
         });
     }

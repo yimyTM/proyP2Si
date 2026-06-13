@@ -5,16 +5,6 @@ namespace App\Services;
 use App\Models\Pago;
 use App\Models\Postulante;
 
-/**
- * Simula la consulta a la pasarela de pagos externa.
- *
- * En producción, este servicio haría una llamada HTTP al endpoint
- * del banco/plataforma de cobros para verificar el estado del pago
- * usando el CI del postulante como identificador primario.
- *
- * Por ahora busca en la tabla `pagos` (que en producción estaría
- * sincronizada desde la pasarela real vía webhook o cron).
- */
 class PagoGatewayService
 {
     /**

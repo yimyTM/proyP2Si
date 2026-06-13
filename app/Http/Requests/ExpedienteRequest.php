@@ -41,6 +41,9 @@ class ExpedienteRequest extends FormRequest
             'carrera_primera'     => ['required', 'integer', 'exists:carreras,codCarrera'],
             'carrera_segunda'     => ['nullable', 'integer', 'exists:carreras,codCarrera', 'different:carrera_primera'],
 
+            // Foto del postulante (JPG o PNG — máx. 2 MB)
+            'foto' => ['required', 'image', 'mimes:jpg,jpeg,png', 'max:2048'],
+
             // Documentos requeridos (PDF, JPG o PNG — máx. 5 MB cada uno)
             'doc_titulo_bachiller'          => ['required', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
             'doc_libreta_escolar'           => ['required', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
@@ -56,6 +59,10 @@ class ExpedienteRequest extends FormRequest
             'correo.unique'                         => 'Este correo electrónico ya se encuentra registrado.',
             'fecha_nacimiento.before'               => 'Debes tener al menos 17 años.',
             'carrera_segunda.different'             => 'La segunda opción debe ser diferente a la primera.',
+            'foto.required'                         => 'Debes adjuntar una foto tuya (JPG o PNG).',
+            'foto.image'                            => 'La foto debe ser una imagen.',
+            'foto.mimes'                            => 'La foto debe ser JPG o PNG.',
+            'foto.max'                              => 'La foto no debe superar los 2 MB.',
             'doc_titulo_bachiller.required'         => 'Debes adjuntar el Título de Bachiller.',
             'doc_libreta_escolar.required'          => 'Debes adjuntar la Libreta Escolar.',
             'doc_cedula_identidad.required'         => 'Debes adjuntar la Cédula de Identidad.',

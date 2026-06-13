@@ -45,22 +45,27 @@
 
                 @foreach([
                     ['codigoG',   'Grupo',   $grupos,   'codigoG',   fn($g) => "Grupo #{$g->codigoG} — {$g->modalidad?->nombModalidad} / {$g->turno?->nombTurno}"],
+                    ['idMateria', 'Materia', $materias, 'idMateria', fn($m) => $m->nombMateria],
                     ['codigoDoc', 'Docente', $docentes, 'codigoDoc', fn($d) => "{$d->nombre} {$d->apellido}"],
                     ['idAula',    'Aula',    $aulas,    'idAula',    fn($a) => "Aula #{$a->idAula} (cap. {$a->capacidad})"],
                     ['idHorario', 'Horario', $horarios, 'idHorario', fn($h) => "{$h->dia} {$h->hora_ini->format('H:i')}–{$h->hora_fin->format('H:i')}"],
-                    ['idMateria', 'Materia', $materias, 'idMateria', fn($m) => $m->nombMateria],
                 ] as [$name, $label, $col, $pk, $text])
                 <div class="mb-4">
                     <label class="block text-xs font-medium text-gray-600 mb-1">{{ $label }}</label>
-                    <select name="{{ $name }}"
+                    <select name="{{ $name }}" id="select-{{ $name }}"
                             class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-[#283342]/30">
                         <option value="">Seleccione {{ strtolower($label) }}...</option>
                         @foreach($col as $item)
-                            <option value="{{ $item->$pk }}" {{ old($name) == $item->$pk ? 'selected' : '' }}>
+                            <option value="{{ $item->$pk }}"
+                                @if($name === 'codigoDoc') data-materias="{{ implode(',', $aceptadasPorDocente[$item->codigoDoc] ?? []) }}" @endif
+                                {{ old($name) == $item->$pk ? 'selected' : '' }}>
                                 {{ $text($item) }}
                             </option>
                         @endforeach
                     </select>
+                    @if($name === 'codigoDoc')
+                        <p class="text-xs text-gray-400 mt-1" id="hint-docente">Selecciona primero una materia: solo aparecen los docentes con la materia aceptada.</p>
+                    @endif
                 </div>
                 @endforeach
 
@@ -147,4 +152,39 @@
     </div>
 
 </div>
+
+@push('scripts')
+<script>
+(function () {
+    const selMateria = document.getElementById('select-idMateria');
+    const selDocente = document.getElementById('select-codigoDoc');
+    const hint       = document.getElementById('hint-docente');
+    if (!selMateria || !selDocente) return;
+
+    function filtrarDocentes() {
+        const mat = selMateria.value;
+        let disponibles = 0;
+        Array.from(selDocente.options).forEach(opt => {
+            if (!opt.value) return; // placeholder
+            const mats = (opt.dataset.materias || '').split(',').filter(Boolean);
+            const ok = mat !== '' && mats.includes(mat);
+            opt.hidden = !ok;
+            opt.disabled = !ok;
+            if (ok) disponibles++;
+            if (opt.selected && !ok) selDocente.value = '';
+        });
+        if (hint) {
+            hint.textContent = mat === ''
+                ? 'Selecciona primero una materia: solo aparecen los docentes con la materia aceptada.'
+                : (disponibles === 0
+                    ? 'Ningún docente tiene esta materia aceptada todavía.'
+                    : `${disponibles} docente(s) con esta materia aceptada.`);
+        }
+    }
+
+    selMateria.addEventListener('change', filtrarDocentes);
+    filtrarDocentes();
+})();
+</script>
+@endpush
 @endsection

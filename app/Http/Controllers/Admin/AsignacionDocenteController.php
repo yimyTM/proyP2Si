@@ -24,12 +24,24 @@ class AsignacionDocenteController extends Controller
             'modalidad', 'turno',
             'materiGrupos' => fn($q) => $q->with('materia', 'horario', 'aula', 'docente'),
         ])->get();
-        $docentes = Docente::orderBy('apellido')->get();
         $aulas    = Aula::orderBy('idAula')->get();
         $horarios = Horario::orderBy('dia')->orderBy('hora_ini')->get();
         $materias = Materia::orderBy('nombMateria')->get();
 
-        return view('admin.asignacion_docente', compact('grupos', 'docentes', 'aulas', 'horarios', 'materias'));
+        // Materias ACEPTADAS por docente → solo estos pueden asignarse a esa materia.
+        $aceptadasPorDocente = DB::table('solicitud_materias')
+            ->where('estado', 'aceptado')
+            ->get()
+            ->groupBy('codigoDoc')
+            ->map(fn ($rows) => $rows->pluck('idMateria')->map(fn ($id) => (int) $id)->all());
+
+        // Solo se listan docentes que tengan al menos una materia aceptada.
+        $docentes = Docente::whereIn('codigoDoc', $aceptadasPorDocente->keys())
+            ->orderBy('apellido')->get();
+
+        return view('admin.asignacion_docente', compact(
+            'grupos', 'docentes', 'aulas', 'horarios', 'materias', 'aceptadasPorDocente'
+        ));
     }
 
     /**
@@ -54,6 +66,19 @@ class AsignacionDocenteController extends Controller
         if (! $docente->estaContratadoEn($grupo->idGestion)) {
             return back()->withInput()->withErrors([
                 'codigoDoc' => 'El docente no puede asignarse: no ha sido contratado para esta gestión.',
+            ]);
+        }
+
+        // ── El docente debe tener la materia ACEPTADA (solicitud de materia) ──
+        $materiaAceptada = DB::table('solicitud_materias')
+            ->where('codigoDoc', $docente->codigoDoc)
+            ->where('idMateria', $materia->idMateria)
+            ->where('estado', 'aceptado')
+            ->exists();
+
+        if (! $materiaAceptada) {
+            return back()->withInput()->withErrors([
+                'codigoDoc' => "El docente no tiene una solicitud ACEPTADA para la materia «{$materia->nombMateria}».",
             ]);
         }
 

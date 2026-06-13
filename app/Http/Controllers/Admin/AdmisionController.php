@@ -72,10 +72,9 @@ class AdmisionController extends Controller
 
         [$asignaciones] = $this->calcularAsignaciones($gestionModel);
 
-        $admitidos   = 0;
-        $reubicados  = 0;
-        $sinCupo     = 0;
-        $noAdmitidos = 0;
+        $admitidos  = 0;
+        $reubicados = 0;
+        $reprobados = 0;
 
         foreach ($asignaciones as $idInscripcion => $data) {
             Inscripcion::where('idInscripcion', $idInscripcion)->update([
@@ -90,20 +89,16 @@ class AdmisionController extends Controller
             );
 
             match ($data['estado_admision']) {
-                'Admitido'    => $admitidos++,
-                'Reubicado'   => $reubicados++,
-                'Sin cupo'    => $sinCupo++,
-                'No admitido' => $noAdmitidos++,
-                default       => null,
+                'Admitido'  => $admitidos++,
+                'Reubicado' => $reubicados++,
+                'Reprobado' => $reprobados++,
+                default     => null,
             };
         }
 
         $msg = "Admisión procesada: {$admitidos} admitido(s), {$reubicados} reubicado(s).";
-        if ($sinCupo > 0) {
-            $msg .= " {$sinCupo} sin cupo disponible.";
-        }
-        if ($noAdmitidos > 0) {
-            $msg .= " {$noAdmitidos} no admitido(s) por resultado académico.";
+        if ($reprobados > 0) {
+            $msg .= " {$reprobados} reprobado(s) (sin cupo o sin puntaje suficiente).";
         }
 
         return back()->with('success', $msg);
@@ -147,7 +142,7 @@ class AdmisionController extends Controller
             $p2 = $insc->carreras->where('pivot.prioridad', 2)->first();
 
             $codAsignada    = null;
-            $estadoAdmision = 'Sin cupo';
+            $estadoAdmision = 'Reprobado';
             $carreraNombre  = null;
 
             if ($p1 && ($cuposRestantes[$p1->codCarrera] ?? 0) > 0) {
@@ -184,7 +179,7 @@ class AdmisionController extends Controller
                 'inscripcion'       => $insc,
                 'codCarreraAsignada'=> null,
                 'carreraNombre'     => null,
-                'estado_admision'   => 'No admitido',
+                'estado_admision'   => 'Reprobado',
                 'prioridad1'        => null,
                 'prioridad2'        => null,
             ];

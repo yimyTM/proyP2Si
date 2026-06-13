@@ -33,6 +33,18 @@ class MateriGrupoController extends Controller
             ]);
         }
 
+        // ── El docente debe tener la materia ACEPTADA (solicitud de materia) ──
+        $materiaAceptada = DB::table('solicitud_materias')
+            ->where('codigoDoc', $data['codigoDoc'])
+            ->where('idMateria', $data['idMateria'])
+            ->where('estado', 'aceptado')
+            ->exists();
+        if (! $materiaAceptada) {
+            return back()->withInput()->withErrors([
+                'codigoDoc' => 'El docente no tiene una solicitud ACEPTADA para esta materia.',
+            ]);
+        }
+
         // ── Materia ya asignada en este grupo ─────────────────────────────────
         $yaExiste = DB::table('materi_grupos')
             ->where('codigoG',   $grupo->codigoG)

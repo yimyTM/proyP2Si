@@ -23,6 +23,7 @@ class Postulante extends Model
         'fecha_nacimiento',
         'ciudad',
         'colegio_procedencia',
+        'foto',
         'correo',
         'contrasena',
         'idUsuario',

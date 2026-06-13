@@ -119,15 +119,6 @@
                         </div>
                     </div>
 
-                    {{-- Recordar sesión --}}
-                    <div class="flex items-center gap-2">
-                        <input type="checkbox" id="remember" name="remember"
-                               class="w-4 h-4 rounded border-gray-300" style="accent-color: #283342;">
-                        <label for="remember" class="text-sm text-gray-600 cursor-pointer select-none">
-                            Mantener sesión iniciada
-                        </label>
-                    </div>
-
                     {{-- Botón principal --}}
                     <button type="submit"
                             class="w-full py-2.5 rounded-lg text-white text-sm font-semibold tracking-wide
@@ -137,13 +128,6 @@
                     </button>
                 </form>
 
-                {{-- Solicitar acceso --}}
-                <p class="mt-5 text-center text-sm text-gray-500">
-                    ¿No tienes una cuenta?
-                    <a href="{{ route('verificar-pago') }}" class="font-semibold hover:underline ml-1" style="color: #283342;">
-                        Solicitar acceso
-                    </a>
-                </p>
             </div>
 
             {{-- ── RIGHT: Branding ───────────────────────────────────────── --}}

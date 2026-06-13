@@ -14,6 +14,7 @@ use App\Http\Controllers\Admin\ImportPostulanteController;
 use App\Http\Controllers\Admin\ReporteController;
 use App\Http\Controllers\RegistroController;
 use App\Http\Controllers\PostulacionDocenteController;
+use App\Http\Controllers\SolicitudMateriaController;
 use App\Http\Controllers\GrupoController;
 use App\Http\Controllers\InscripcionController;
 use App\Http\Controllers\MateriGrupoController;
@@ -69,7 +70,8 @@ Route::middleware('auth')->get('/dashboard', function () {
 })->name('dashboard');
 
 // ── CU01: Autenticación ───────────────────────────────────────────────────────
-Route::middleware('guest')->group(function () {
+// nocache evita que el navegador cachee la página de login con un token CSRF viejo
+Route::middleware(['guest', 'nocache'])->group(function () {
     Route::get('/login',  [AuthController::class, 'showLogin'])->name('login');
     Route::post('/login', [AuthController::class, 'login'])->name('login.submit');
 
@@ -121,6 +123,7 @@ Route::middleware(['auth', 'role:Administrador,Autoridades,Coordinador'])
 
         // CU05 (Admin) – Supervisión y validación de expedientes
         Route::get('/expedientes', [RequisitoPostulanteController::class, 'supervisar'])->name('expedientes');
+        Route::post('/expedientes/postulante/{postulante}/estado-masivo', [RequisitoPostulanteController::class, 'estadoMasivoPostulante'])->name('expedientes.postulante.estado.masivo');
         Route::post('/expedientes/postulante/{postulante}/{requisito}', [RequisitoPostulanteController::class, 'estadoPostulante'])->name('expedientes.postulante.estado');
         Route::post('/expedientes/docente/{docente}/{requisito}',       [RequisitoPostulanteController::class, 'estadoDocente'])->name('expedientes.docente.estado');
         Route::patch('/expedientes/{inscripcion}/validar',  [InscripcionController::class, 'validarAdmin'])->name('expedientes.validar');
@@ -153,6 +156,13 @@ Route::middleware(['auth', 'role:Administrador,Autoridades,Coordinador'])
         Route::get('/roles', [RolController::class, 'index'])->name('roles.index');
         Route::put('/roles/{rol}/permisos', [RolController::class, 'actualizarPermisos'])->name('roles.permisos.update');
 
+        // Solicitudes de materia (Admin y Coordinador) — permiso ver_solicitudes
+        Route::middleware('role:Administrador,Coordinador')->group(function () {
+            Route::get('/solicitudes', [SolicitudMateriaController::class, 'index'])->name('solicitudes.index');
+            Route::post('/solicitudes/{codigoDoc}/{idMateria}/aceptar',  [SolicitudMateriaController::class, 'aceptar'])->name('solicitudes.aceptar');
+            Route::post('/solicitudes/{codigoDoc}/{idMateria}/rechazar', [SolicitudMateriaController::class, 'rechazar'])->name('solicitudes.rechazar');
+        });
+
         // CU14 – Reportes y analíticas institucionales (panel con filtros)
         Route::get('/reportes',        [ReporteController::class, 'index'])->name('reportes.index');
         Route::get('/reportes/export', [ReporteController::class, 'export'])->name('reportes.export');
@@ -182,6 +192,10 @@ Route::middleware(['auth', 'role:Docente'])
     ->name('docente.')
     ->group(function () {
         Route::get('/dashboard', [DocenteController::class, 'dashboard'])->name('dashboard');
+
+        // Solicitud de materias que desea dictar
+        Route::get('/solicitud-materias',  [SolicitudMateriaController::class, 'misSolicitudes'])->name('solicitud-materias');
+        Route::post('/solicitud-materias', [SolicitudMateriaController::class, 'solicitar'])->name('solicitud-materias.store');
 
         // Asistencia
         Route::get('/asistencia',            [AsistenciaController::class, 'index'])->name('asistencia.index');

@@ -131,6 +131,136 @@
     </div>
     @endif
 
+    {{-- ── Calificaciones por gestión ─────────────────────────────────────────── --}}
+    @foreach($postulante->inscripciones as $inscripcion)
+    @if($inscripcion->notas->isNotEmpty())
+    @php
+        $examenes = $inscripcion->notas
+            ->pluck('examMateria.examen')
+            ->unique('idExamen')
+            ->sortBy('nroParcial')
+            ->values();
+
+        $materias = $inscripcion->notas
+            ->groupBy(fn($n) => $n->examMateria->idMateria)
+            ->map(function ($notas) {
+                $first = $notas->first();
+                return (object)[
+                    'nombre'    => $first->examMateria->materia->nombMateria,
+                    'parciales' => $notas->keyBy(fn($n) => $n->examMateria->examen->nroParcial),
+                ];
+            })
+            ->sortBy('nombre')
+            ->values();
+
+        $promedio    = $inscripcion->promedio;
+        $resultado   = $inscripcion->resultado;
+        $estadoAdm   = $inscripcion->estado_admision;
+
+        $resColors = match($resultado) {
+            'Aprobado'  => ['bg-emerald-100', 'text-emerald-700'],
+            'Reprobado' => ['bg-red-100',     'text-red-700'],
+            default     => ['bg-gray-100',    'text-gray-500'],
+        };
+        $admColors = match($estadoAdm) {
+            'Admitido'  => ['bg-emerald-100', 'text-emerald-700'],
+            'Reubicado' => ['bg-blue-100',    'text-blue-700'],
+            'Reprobado' => ['bg-red-100',     'text-red-700'],
+            default     => ['bg-gray-100',    'text-gray-400'],
+        };
+    @endphp
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="px-6 py-4 border-b flex flex-wrap items-center justify-between gap-3">
+            <h3 class="font-semibold text-gray-800">
+                Calificaciones
+                <span class="text-xs font-normal text-gray-400 ml-1">
+                    (Inscripción #{{ $inscripcion->idInscripcion }})
+                </span>
+            </h3>
+            <div class="flex flex-wrap items-center gap-2">
+                @if($promedio !== null)
+                <span class="text-sm font-bold {{ (float)$promedio >= 60 ? 'text-emerald-700' : 'text-red-600' }}">
+                    Promedio: {{ number_format($promedio, 2) }}
+                </span>
+                @endif
+                @if($resultado)
+                <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full {{ $resColors[0] }} {{ $resColors[1] }}">
+                    {{ $resultado }}
+                </span>
+                @endif
+                @if($estadoAdm)
+                <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full {{ $admColors[0] }} {{ $admColors[1] }}">
+                    {{ $estadoAdm }}
+                </span>
+                @endif
+            </div>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead class="bg-gray-50 text-xs text-gray-500 uppercase tracking-wider">
+                    <tr>
+                        <th class="px-5 py-3 text-left font-semibold">Materia</th>
+                        @foreach($examenes as $examen)
+                        <th class="px-4 py-3 text-center font-semibold whitespace-nowrap">
+                            {{ $examen->descripcion }}
+                            @if($examen->ponderacion)
+                            <span class="block font-normal normal-case text-gray-400">({{ $examen->ponderacion }}%)</span>
+                            @endif
+                        </th>
+                        @endforeach
+                        <th class="px-5 py-3 text-center font-semibold">Total</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-50">
+                    @foreach($materias as $materia)
+                    @php $total = $materia->parciales->sum('calificacion'); @endphp
+                    <tr class="hover:bg-gray-50 transition">
+                        <td class="px-5 py-3 font-medium text-gray-800">{{ $materia->nombre }}</td>
+                        @foreach($examenes as $examen)
+                        @php $nota = $materia->parciales->get($examen->nroParcial); @endphp
+                        <td class="px-4 py-3 text-center">
+                            @if($nota)
+                            @php
+                                $max = $nota->examMateria->puntaje ?? 100;
+                                $pct = $max > 0 ? ($nota->calificacion / $max) * 100 : 0;
+                            @endphp
+                            <span class="inline-block px-2 py-0.5 rounded-full text-xs font-bold
+                                {{ $pct >= 60 ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-600' }}">
+                                {{ number_format($nota->calificacion, 1) }}
+                                <span class="font-normal text-gray-400">/ {{ $max }}</span>
+                            </span>
+                            @else
+                            <span class="text-gray-300 text-xs">—</span>
+                            @endif
+                        </td>
+                        @endforeach
+                        <td class="px-5 py-3 text-center font-bold text-gray-700">
+                            {{ $total > 0 ? number_format($total, 1) : '—' }}
+                        </td>
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+
+        @if($inscripcion->carreraAsignada)
+        <div class="px-6 py-3 bg-emerald-50 border-t border-emerald-100 flex items-center gap-2 text-sm">
+            <svg class="w-4 h-4 text-emerald-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <span class="text-emerald-700">
+                Carrera asignada: <strong>{{ $inscripcion->carreraAsignada->nombre }}</strong>
+                @if($inscripcion->carreraAsignada->modalidad)
+                — {{ $inscripcion->carreraAsignada->modalidad->nombModalidad }}
+                @endif
+            </span>
+        </div>
+        @endif
+    </div>
+    @endif
+    @endforeach
+
     <form method="POST" action="{{ route('admin.postulantes.destroy', $postulante) }}"
           onsubmit="return confirm('¿Eliminar permanentemente a {{ $postulante->nombre_completo }}?')">
         @csrf @method('DELETE')

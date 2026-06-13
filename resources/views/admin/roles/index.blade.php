@@ -6,7 +6,7 @@
 @section('content')
 <div class="space-y-6">
 
-    {{-- Aviso informativo ─────────────────────────────────────────────────── --}}
+    {{-- Aviso informativo --}}
     <div class="bg-blue-50 border border-blue-200 rounded-xl px-5 py-4 flex items-start gap-3">
         <svg class="w-5 h-5 text-blue-500 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -15,14 +15,13 @@
         <div class="text-sm text-blue-700">
             <p class="font-semibold mb-0.5">Permisos predefinidos del sistema</p>
             <p class="text-blue-600">
-                Los permisos disponibles están definidos por el equipo de desarrollo.
-                Aquí solo puedes <strong>asignar o quitar</strong> permisos a cada rol.
-                Los cambios se aplican inmediatamente al guardar.
+                Los permisos están organizados en <strong>{{ $modulos->count() }} módulos</strong>.
+                Expande un módulo para ver y asignar sus permisos a cada rol.
             </p>
         </div>
     </div>
 
-    {{-- Alertas flash ─────────────────────────────────────────────────────── --}}
+    {{-- Alerta flash --}}
     @if(session('success'))
         <div class="p-4 bg-green-50 border border-green-200 rounded-xl text-green-700 text-sm flex items-center gap-2">
             <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -32,7 +31,7 @@
         </div>
     @endif
 
-    {{-- Tarjetas de roles (tabs) ──────────────────────────────────────────── --}}
+    {{-- Tabs de roles --}}
     @php
         $rolColors = [
             'Administrador' => ['bg' => '#283342', 'light' => '#EEF0F2', 'text' => '#283342'],
@@ -79,8 +78,10 @@
                 </span>
             </div>
             <p class="font-bold text-gray-900 text-base">{{ $rol->nombre_Rol }}</p>
-            <p class="text-xs text-gray-400 mt-0.5 mb-3">{{ $rol->permisos->count() }} de {{ $totalPermisos }} permisos</p>
-            {{-- Barra de progreso --}}
+            <p class="text-xs text-gray-400 mt-0.5 mb-3">
+                <span id="count-tab-{{ $rol->idRol }}">{{ $rol->permisos->count() }}</span>
+                de {{ $totalPermisos }} permisos
+            </p>
             <div class="w-full bg-gray-100 rounded-full h-1.5">
                 <div class="h-1.5 rounded-full transition-all"
                      style="width: {{ $pct }}%; background-color: {{ $color['bg'] }};"></div>
@@ -89,7 +90,7 @@
         @endforeach
     </div>
 
-    {{-- Panel de permisos por rol (tabs) ────────────────────────────────────── --}}
+    {{-- Panel por rol --}}
     @foreach($roles as $rol)
     @php $color = $rolColors[$rol->nombre_Rol] ?? $rolColors['Administrador']; @endphp
     <div id="tab-{{ $rol->idRol }}"
@@ -102,17 +103,16 @@
 
             <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
 
-                {{-- Header del panel --}}
+                {{-- Header --}}
                 <div class="px-6 py-4 border-b flex items-center justify-between"
                      style="border-left: 4px solid {{ $color['bg'] }};">
                     <div>
                         <h3 class="font-bold text-gray-900">Permisos — {{ $rol->nombre_Rol }}</h3>
                         <p class="text-xs text-gray-400 mt-0.5">
-                            Selecciona los permisos que tendrá este rol. Los cambios se aplican al guardar.
+                            Expande los módulos para asignar permisos. Los cambios se aplican al guardar.
                         </p>
                     </div>
-                    <div class="flex items-center gap-3">
-                        {{-- Seleccionar / Deseleccionar todos --}}
+                    <div class="flex items-center gap-2">
                         <button type="button"
                                 onclick="toggleTodos({{ $rol->idRol }}, true)"
                                 class="text-xs px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 transition">
@@ -126,42 +126,81 @@
                     </div>
                 </div>
 
-                {{-- Grid de permisos por categoría --}}
-                <div class="p-6 grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-5">
-                    @foreach($permisosPorCategoria as $categoria => $permisosDeCategoria)
-                    <div class="space-y-2">
-                        {{-- Encabezado de categoría --}}
-                        <div class="flex items-center gap-2 mb-3">
-                            <div class="w-1.5 h-4 rounded-full" style="background-color: {{ $color['bg'] }};"></div>
-                            <p class="text-xs font-bold text-gray-600 uppercase tracking-wider">{{ $categoria }}</p>
-                        </div>
+                {{-- Acordeón de módulos --}}
+                <div class="divide-y divide-gray-100">
+                    @foreach($modulos as $modulo)
+                    @php
+                        $permsModulo     = $modulo->permisos;
+                        $totalMod        = $permsModulo->count();
+                        $asignadosMod    = $permsModulo->filter(fn($p) => $rol->permisos->contains('idPermiso', $p->idPermiso))->count();
+                        $todosMarcados   = $totalMod > 0 && $asignadosMod === $totalMod;
+                        $algunoMarcado   = $asignadosMod > 0 && !$todosMarcados;
+                    @endphp
+                    <div class="accordion-item" id="mod-{{ $rol->idRol }}-{{ $modulo->idModulo }}">
 
-                        @foreach($permisosDeCategoria as $permiso)
-                        @php $asignado = $rol->permisos->contains('idPermiso', $permiso->idPermiso); @endphp
-                        <label class="flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all
-                                      hover:border-gray-300 hover:bg-gray-50
-                                      {{ $asignado ? 'border-gray-200 bg-gray-50' : 'border-gray-100 bg-white' }}"
-                               id="label-{{ $rol->idRol }}-{{ $permiso->idPermiso }}">
-                            <input
-                                type="checkbox"
-                                name="permisos[]"
-                                value="{{ $permiso->idPermiso }}"
-                                data-rol="{{ $rol->idRol }}"
-                                {{ $asignado ? 'checked' : '' }}
-                                onchange="actualizarLabel(this)"
-                                class="mt-0.5 w-4 h-4 rounded border-gray-300 transition"
-                                style="accent-color: {{ $color['bg'] }};"
-                            >
-                            <span class="text-sm text-gray-700 leading-snug select-none">
-                                {{ $permiso->nombrePermiso }}
-                            </span>
-                        </label>
-                        @endforeach
+                        {{-- Cabecera del módulo (clickable) --}}
+                        <button type="button"
+                                onclick="toggleModulo({{ $rol->idRol }}, {{ $modulo->idModulo }})"
+                                class="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-50 transition text-left">
+                            <div class="flex items-center gap-3">
+                                {{-- Número de módulo --}}
+                                <span class="w-8 h-8 rounded-lg flex items-center justify-center text-white text-sm font-bold shrink-0"
+                                      style="background-color: {{ $color['bg'] }};">
+                                    {{ $modulo->idModulo }}
+                                </span>
+                                <div>
+                                    <p class="text-sm font-semibold text-gray-800">{{ $modulo->nombreModulo }}</p>
+                                    <p class="text-xs text-gray-400 mt-0.5">
+                                        <span class="mod-count-{{ $rol->idRol }}-{{ $modulo->idModulo }}">{{ $asignadosMod }}</span>/{{ $totalMod }} permisos asignados
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-3 shrink-0">
+                                {{-- Pill de estado --}}
+                                <span class="mod-pill-{{ $rol->idRol }}-{{ $modulo->idModulo }} text-xs font-medium px-2.5 py-1 rounded-full
+                                    {{ $todosMarcados ? 'bg-emerald-100 text-emerald-700' : ($algunoMarcado ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-500') }}">
+                                    {{ $todosMarcados ? 'Completo' : ($algunoMarcado ? 'Parcial' : 'Ninguno') }}
+                                </span>
+                                {{-- Ícono flecha --}}
+                                <svg class="accordion-arrow-{{ $rol->idRol }}-{{ $modulo->idModulo }} w-4 h-4 text-gray-400 transition-transform"
+                                     fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                                </svg>
+                            </div>
+                        </button>
+
+                        {{-- Cuerpo colapsable --}}
+                        <div class="accordion-body-{{ $rol->idRol }}-{{ $modulo->idModulo }} hidden px-5 pb-4">
+                            <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2 pt-1">
+                                @foreach($permsModulo as $permiso)
+                                @php $asignado = $rol->permisos->contains('idPermiso', $permiso->idPermiso); @endphp
+                                <label class="perm-label flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all
+                                              hover:border-gray-300 hover:bg-gray-50
+                                              {{ $asignado ? 'border-gray-200 bg-gray-50' : 'border-gray-100 bg-white' }}"
+                                       id="label-{{ $rol->idRol }}-{{ $permiso->idPermiso }}">
+                                    <input
+                                        type="checkbox"
+                                        name="permisos[]"
+                                        value="{{ $permiso->idPermiso }}"
+                                        data-rol="{{ $rol->idRol }}"
+                                        data-modulo="{{ $modulo->idModulo }}"
+                                        {{ $asignado ? 'checked' : '' }}
+                                        onchange="onCheckboxChange(this)"
+                                        class="w-4 h-4 rounded border-gray-300 transition shrink-0"
+                                        style="accent-color: {{ $color['bg'] }};"
+                                    >
+                                    <span class="text-sm text-gray-700 leading-snug select-none">
+                                        {{ $permiso->nombrePermiso }}
+                                    </span>
+                                </label>
+                                @endforeach
+                            </div>
+                        </div>
                     </div>
                     @endforeach
                 </div>
 
-                {{-- Footer con botón guardar --}}
+                {{-- Footer --}}
                 <div class="px-6 py-4 bg-gray-50 border-t flex items-center justify-between">
                     <p class="text-xs text-gray-400">
                         <span id="count-{{ $rol->idRol }}">{{ $rol->permisos->count() }}</span>
@@ -183,59 +222,96 @@
 
 @push('scripts')
 <script>
-// ── Activar tab ───────────────────────────────────────────────────────────────
+// ── Activar tab de rol ────────────────────────────────────────────────────────
 function activarTab(rolId) {
     document.querySelectorAll('.tab-panel').forEach(p => p.classList.add('hidden'));
-    document.getElementById('tab-' + rolId).classList.remove('hidden');
+    document.getElementById('tab-' + rolId)?.classList.remove('hidden');
 
-    // Actualizar estilos de botones de tab
     document.querySelectorAll('[id^="tab-btn-"]').forEach(btn => {
         btn.classList.remove('shadow-lg', 'scale-[1.02]');
         btn.style.backgroundColor = '';
-        btn.style.borderColor = '';
+        btn.style.borderColor     = '';
     });
 }
 
-// ── Seleccionar / Deseleccionar todos los permisos de un rol ──────────────────
+// ── Abrir/cerrar un módulo (acordeón) ─────────────────────────────────────────
+function toggleModulo(rolId, modId) {
+    const body  = document.querySelector(`.accordion-body-${rolId}-${modId}`);
+    const arrow = document.querySelector(`.accordion-arrow-${rolId}-${modId}`);
+    if (!body) return;
+
+    const open = !body.classList.contains('hidden');
+    body.classList.toggle('hidden', open);
+    arrow?.classList.toggle('rotate-180', !open);
+}
+
+// ── Marcar/desmarcar todos los permisos de un rol ─────────────────────────────
 function toggleTodos(rolId, estado) {
     document.querySelectorAll(`input[data-rol="${rolId}"]`).forEach(cb => {
         cb.checked = estado;
         actualizarLabel(cb);
     });
-    actualizarContador(rolId);
+    actualizarContadores(rolId);
 }
 
-// ── Resaltar label según estado del checkbox ──────────────────────────────────
+// ── Al cambiar un checkbox individual ────────────────────────────────────────
+function onCheckboxChange(cb) {
+    actualizarLabel(cb);
+    actualizarContadores(cb.dataset.rol);
+    actualizarPillModulo(cb.dataset.rol, cb.dataset.modulo);
+}
+
+// ── Resaltar/quitar resalte del label ────────────────────────────────────────
 function actualizarLabel(cb) {
-    const rolId     = cb.dataset.rol;
-    const permisoId = cb.value;
-    const label     = document.getElementById(`label-${rolId}-${permisoId}`);
-    if (! label) return;
-
+    const label = document.getElementById(`label-${cb.dataset.rol}-${cb.value}`);
+    if (!label) return;
     if (cb.checked) {
-        label.classList.remove('border-gray-100', 'bg-white');
-        label.classList.add('border-gray-200', 'bg-gray-50');
+        label.classList.replace('border-gray-100', 'border-gray-200');
+        label.classList.replace('bg-white', 'bg-gray-50');
     } else {
-        label.classList.remove('border-gray-200', 'bg-gray-50');
-        label.classList.add('border-gray-100', 'bg-white');
+        label.classList.replace('border-gray-200', 'border-gray-100');
+        label.classList.replace('bg-gray-50', 'bg-white');
     }
-    actualizarContador(rolId);
 }
 
-// ── Actualizar contador de permisos seleccionados ────────────────────────────
-function actualizarContador(rolId) {
-    const total   = document.querySelectorAll(`input[data-rol="${rolId}"]`).length;
+// ── Actualizar contador total del rol (footer + tab card) ─────────────────────
+function actualizarContadores(rolId) {
     const marcados = document.querySelectorAll(`input[data-rol="${rolId}"]:checked`).length;
-    const span    = document.getElementById(`count-${rolId}`);
-    if (span) span.textContent = marcados;
+    const spanFoot = document.getElementById(`count-${rolId}`);
+    const spanTab  = document.getElementById(`count-tab-${rolId}`);
+    if (spanFoot) spanFoot.textContent = marcados;
+    if (spanTab)  spanTab.textContent  = marcados;
 }
 
-// ── Inicializar: abrir el tab activo al cargar ────────────────────────────────
+// ── Actualizar pill de estado del módulo ──────────────────────────────────────
+function actualizarPillModulo(rolId, modId) {
+    const todos   = document.querySelectorAll(`input[data-rol="${rolId}"][data-modulo="${modId}"]`);
+    const marcados = [...todos].filter(cb => cb.checked).length;
+    const pill     = document.querySelector(`.mod-pill-${rolId}-${modId}`);
+    const counter  = document.querySelector(`.mod-count-${rolId}-${modId}`);
+
+    if (counter) counter.textContent = marcados;
+    if (!pill) return;
+
+    pill.className = pill.className.replace(/bg-\w+-\d+ text-\w+-\d+/g, '').trim();
+
+    if (marcados === 0) {
+        pill.textContent = 'Ninguno';
+        pill.classList.add('bg-gray-100', 'text-gray-500');
+    } else if (marcados === todos.length) {
+        pill.textContent = 'Completo';
+        pill.classList.add('bg-emerald-100', 'text-emerald-700');
+    } else {
+        pill.textContent = 'Parcial';
+        pill.classList.add('bg-amber-100', 'text-amber-700');
+    }
+}
+
+// ── Inicializar ───────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
     const activo = {{ session('rolActivo', $roles->first()?->idRol ?? 0) }};
     if (activo) {
-        const panel = document.getElementById('tab-' + activo);
-        if (panel) panel.classList.remove('hidden');
+        document.getElementById('tab-' + activo)?.classList.remove('hidden');
     }
 });
 </script>

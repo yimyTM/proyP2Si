@@ -231,22 +231,47 @@
                     <tr id="{{ $pid }}" class="hidden border-t border-dashed border-gray-200 bg-gray-50">
                         <td colspan="{{ $cols }}" class="px-6 py-4">
                             <div class="space-y-2">
-                                <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
-                                    @if($soloLectura)
-                                        Detalle del expediente (solo lectura) —
-                                    @else
-                                        Editar estado de requisitos —
-                                    @endif
-                                    {{ $post->nombre }} {{ $post->apellidos }}
-                                </p>
+                                <div class="flex items-center gap-4 mb-3">
+                                    <div class="flex flex-col items-center gap-1.5 shrink-0">
+                                        @if($post->foto)
+                                        <div class="w-16 h-16 rounded-full overflow-hidden border-2 border-gray-200">
+                                            <img src="{{ \Illuminate\Support\Facades\Storage::url($post->foto) }}"
+                                                 alt="{{ $post->nombre }} {{ $post->apellidos }}"
+                                                 class="w-full h-full object-cover">
+                                        </div>
+                                        <a href="{{ \Illuminate\Support\Facades\Storage::url($post->foto) }}"
+                                           download="{{ $post->ci }}_foto.{{ pathinfo($post->foto, PATHINFO_EXTENSION) }}"
+                                           class="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#283342] text-white hover:opacity-80 transition">
+                                            <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                      d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                                            </svg>
+                                            Foto
+                                        </a>
+                                        @else
+                                        <div class="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center text-gray-400 text-lg font-bold">
+                                            {{ strtoupper(mb_substr($post->nombre, 0, 1) . mb_substr($post->apellidos, 0, 1)) }}
+                                        </div>
+                                        <span class="text-[10px] text-gray-400">Sin foto</span>
+                                        @endif
+                                    </div>
+                                    <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                                        @if($soloLectura)
+                                            Detalle del expediente (solo lectura) —
+                                        @else
+                                            Editar estado de requisitos —
+                                        @endif
+                                        {{ $post->nombre }} {{ $post->apellidos }}
+                                    </p>
+                                </div>
 
                                 @if($soloLectura)
-                                    {{-- Modo lectura: solo badges, sin formularios --}}
-                                    <div class="flex flex-wrap gap-3">
+                                    {{-- Modo lectura: badges + descarga --}}
+                                    <div class="space-y-2">
                                         @foreach($requisitosP as $req)
                                         @php $reg = $entregadosP->get($req->idReq); @endphp
-                                        <span class="text-sm text-gray-700">
-                                            {{ $req->nombre }}:
+                                        <div class="flex items-center gap-3 flex-wrap">
+                                            <span class="text-sm text-gray-700 w-52 shrink-0">{{ $req->nombre }}</span>
                                             @if(!$reg)
                                                 <span class="text-xs text-red-600 bg-red-50 px-2 py-0.5 rounded-full">Faltante</span>
                                             @elseif($reg->validado)
@@ -254,18 +279,78 @@
                                             @else
                                                 <span class="text-xs text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full">Pendiente</span>
                                             @endif
-                                        </span>
+                                            @if($reg?->ruta_archivo)
+                                            <a href="{{ \Illuminate\Support\Facades\Storage::url($reg->ruta_archivo) }}"
+                                               download="{{ $post->ci }}_{{ \Illuminate\Support\Str::slug($req->nombre) }}.{{ pathinfo($reg->ruta_archivo, PATHINFO_EXTENSION) }}"
+                                               class="inline-flex items-center gap-1 text-xs font-medium text-[#283342] hover:underline">
+                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                          d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                                                </svg>
+                                                Descargar
+                                            </a>
+                                            @endif
+                                        </div>
                                         @endforeach
                                     </div>
                                 @else
                                     {{-- Modo edición --}}
+
+                                    {{-- Cabecera: seleccionar todos + barra masiva --}}
+                                    <div class="flex items-center gap-4 py-1.5 mb-1">
+                                        <label class="flex items-center gap-2 text-xs text-gray-500 cursor-pointer select-none shrink-0">
+                                            <input type="checkbox" id="sel-all-{{ $pid }}"
+                                                   onchange="selectAllReqs('{{ $pid }}', this.checked)"
+                                                   class="rounded border-gray-300 w-4 h-4 accent-[#283342]">
+                                            Seleccionar todos
+                                        </label>
+
+                                        {{-- Barra masiva (visible solo si hay selección) --}}
+                                        <div id="bulk-bar-{{ $pid }}" class="hidden items-center gap-2 flex-wrap">
+                                            <span class="text-xs font-semibold text-[#283342]"
+                                                  id="bulk-count-{{ $pid }}"></span>
+                                            <span class="text-xs text-gray-400">→ Marcar como:</span>
+
+                                            <form method="POST"
+                                                  action="{{ route('admin.expedientes.postulante.estado.masivo', $post->idPost) }}"
+                                                  id="bulk-form-{{ $pid }}"
+                                                  class="flex gap-2">
+                                                @csrf
+                                                <input type="hidden" name="estado" id="bulk-estado-{{ $pid }}" value="">
+
+                                                <button type="button"
+                                                        onclick="submitBulk('{{ $pid }}', 'faltante')"
+                                                        class="text-xs px-3 py-1 rounded-lg border border-red-200 text-red-600 bg-red-50 hover:bg-red-100 font-semibold transition">
+                                                    Faltante
+                                                </button>
+                                                <button type="button"
+                                                        onclick="submitBulk('{{ $pid }}', 'pendiente')"
+                                                        class="text-xs px-3 py-1 rounded-lg border border-amber-200 text-amber-600 bg-amber-50 hover:bg-amber-100 font-semibold transition">
+                                                    Pendiente
+                                                </button>
+                                                <button type="button"
+                                                        onclick="submitBulk('{{ $pid }}', 'validado')"
+                                                        class="text-xs px-3 py-1 rounded-lg border border-green-200 text-green-600 bg-green-50 hover:bg-green-100 font-semibold transition">
+                                                    Validado
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </div>
+
                                     @foreach($requisitosP as $req)
                                     @php
                                         $reg = $entregadosP->get($req->idReq);
                                         $estadoActual = !$reg ? 'faltante' : ($reg->validado ? 'validado' : 'pendiente');
                                     @endphp
-                                    <div class="flex items-center gap-4 py-2 border-b border-gray-100 last:border-0">
-                                        <span class="w-48 text-sm text-gray-700 shrink-0">
+                                    <div class="flex items-center gap-3 py-2 border-b border-gray-100 last:border-0">
+
+                                        {{-- Checkbox de selección --}}
+                                        <input type="checkbox"
+                                               class="req-cb-{{ $pid }} rounded border-gray-300 w-4 h-4 shrink-0 accent-[#283342]"
+                                               value="{{ $req->idReq }}"
+                                               onchange="updateBulkBar('{{ $pid }}')">
+
+                                        <span class="w-44 text-sm text-gray-700 shrink-0">
                                             {{ $req->nombre }}
                                             @if($req->obligatorio)<span class="text-red-400 text-xs">*</span>@endif
                                         </span>
@@ -299,6 +384,18 @@
                                                 Validado
                                             </button>
                                         </form>
+
+                                        @if($reg?->ruta_archivo)
+                                        <a href="{{ \Illuminate\Support\Facades\Storage::url($reg->ruta_archivo) }}"
+                                           download="{{ $post->ci }}_{{ \Illuminate\Support\Str::slug($req->nombre) }}.{{ pathinfo($reg->ruta_archivo, PATHINFO_EXTENSION) }}"
+                                           class="inline-flex items-center gap-1 text-xs font-medium text-[#283342] hover:underline ml-auto">
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                      d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                                            </svg>
+                                            Descargar
+                                        </a>
+                                        @endif
                                     </div>
                                     @endforeach
 
@@ -547,6 +644,54 @@ function togglePanel(id) {
         if (!btn.dataset.openLabel) btn.dataset.openLabel = btn.textContent.trim();
         btn.textContent = isNowHidden ? btn.dataset.openLabel : 'Cerrar';
     }
+}
+
+function updateBulkBar(pid) {
+    const cbs    = document.querySelectorAll('.req-cb-' + pid + ':checked');
+    const allCbs = document.querySelectorAll('.req-cb-' + pid);
+    const bar    = document.getElementById('bulk-bar-' + pid);
+    const count  = document.getElementById('bulk-count-' + pid);
+    const selAll = document.getElementById('sel-all-' + pid);
+
+    if (cbs.length > 0) {
+        bar.classList.remove('hidden');
+        bar.classList.add('flex');
+    } else {
+        bar.classList.remove('flex');
+        bar.classList.add('hidden');
+    }
+
+    count.textContent = cbs.length + (cbs.length === 1 ? ' seleccionado' : ' seleccionados');
+
+    if (selAll) {
+        selAll.indeterminate = cbs.length > 0 && cbs.length < allCbs.length;
+        selAll.checked       = allCbs.length > 0 && cbs.length === allCbs.length;
+    }
+}
+
+function selectAllReqs(pid, checked) {
+    document.querySelectorAll('.req-cb-' + pid).forEach(cb => cb.checked = checked);
+    updateBulkBar(pid);
+}
+
+function submitBulk(pid, estado) {
+    const cbs = document.querySelectorAll('.req-cb-' + pid + ':checked');
+    if (!cbs.length) return;
+
+    const form = document.getElementById('bulk-form-' + pid);
+    document.getElementById('bulk-estado-' + pid).value = estado;
+
+    // Limpiar inputs previos y añadir los IDs seleccionados
+    form.querySelectorAll('[name="requisitos[]"]').forEach(el => el.remove());
+    cbs.forEach(cb => {
+        const input = document.createElement('input');
+        input.type  = 'hidden';
+        input.name  = 'requisitos[]';
+        input.value = cb.value;
+        form.appendChild(input);
+    });
+
+    form.submit();
 }
 </script>
 @endpush

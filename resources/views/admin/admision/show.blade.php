@@ -124,11 +124,8 @@
                 <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 font-medium">
                     <span class="w-2 h-2 rounded-full bg-blue-500"></span> Reubicado (2ª opción)
                 </span>
-                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 font-medium">
-                    <span class="w-2 h-2 rounded-full bg-amber-400"></span> Sin cupo
-                </span>
                 <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-red-50 text-red-700 font-medium">
-                    <span class="w-2 h-2 rounded-full bg-red-400"></span> No admitido
+                    <span class="w-2 h-2 rounded-full bg-red-400"></span> Reprobado (sin cupo o puntaje insuficiente)
                 </span>
             </div>
         </div>
@@ -157,25 +154,39 @@
                         $p2     = $data['prioridad2'];
                         $carAsg = $data['carreraNombre'];
 
-                        if ($est !== 'No admitido') $rank++;
+                        if ($est !== 'Reprobado') $rank++;
 
                         $rowClass = match($est) {
-                            'Admitido'    => 'bg-emerald-50/40',
-                            'Reubicado'   => 'bg-blue-50/40',
-                            'Sin cupo'    => 'bg-amber-50/40',
-                            'No admitido' => 'bg-red-50/30',
-                            default       => '',
+                            'Admitido'  => 'bg-emerald-50/40',
+                            'Reubicado' => 'bg-blue-50/40',
+                            'Reprobado' => 'bg-red-50/30',
+                            default     => '',
                         };
                     @endphp
                     <tr class="hover:bg-gray-50 transition {{ $rowClass }}">
                         <td class="px-5 py-3.5 text-gray-400 text-xs font-mono">
-                            {{ $est !== 'No admitido' ? $rank : '—' }}
+                            {{ $est !== 'Reprobado' ? $rank : '—' }}
                         </td>
                         <td class="px-5 py-3.5">
-                            <p class="font-medium text-gray-900">
-                                {{ $insc->postulante?->apellidos }}, {{ $insc->postulante?->nombre }}
-                            </p>
-                            <p class="text-xs text-gray-400">CI: {{ $insc->postulante?->ci }}</p>
+                            <div class="flex items-center gap-3">
+                                @if($insc->postulante?->foto)
+                                <div class="w-9 h-9 rounded-full overflow-hidden shrink-0 border border-gray-200">
+                                    <img src="{{ \Illuminate\Support\Facades\Storage::url($insc->postulante->foto) }}"
+                                         alt="{{ $insc->postulante->nombre_completo }}"
+                                         class="w-full h-full object-cover">
+                                </div>
+                                @else
+                                <div class="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center shrink-0 text-gray-400 text-xs font-bold border border-gray-200">
+                                    {{ strtoupper(mb_substr($insc->postulante?->nombre ?? '?', 0, 1) . mb_substr($insc->postulante?->apellidos ?? '', 0, 1)) }}
+                                </div>
+                                @endif
+                                <div>
+                                    <p class="font-medium text-gray-900">
+                                        {{ $insc->postulante?->apellidos }}, {{ $insc->postulante?->nombre }}
+                                    </p>
+                                    <p class="text-xs text-gray-400">CI: {{ $insc->postulante?->ci }}</p>
+                                </div>
+                            </div>
                         </td>
                         <td class="px-4 py-3.5 text-center">
                             @if($insc->promedio !== null)
@@ -215,19 +226,15 @@
                         <td class="px-4 py-3.5 text-center">
                             @if($est === 'Admitido')
                                 <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700">
-                                    ✓ Admitido
+                                    ✓ Admitido · 1ª opción
                                 </span>
                             @elseif($est === 'Reubicado')
                                 <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700">
-                                    ⇄ Reubicado
-                                </span>
-                            @elseif($est === 'Sin cupo')
-                                <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-700">
-                                    ⊘ Sin cupo
+                                    ⇄ Reubicado · 2ª opción
                                 </span>
                             @else
                                 <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-700">
-                                    ✗ No admitido
+                                    ✗ Reprobado
                                 </span>
                             @endif
                             {{-- Mostrar lo ya guardado en BD si difiere --}}
@@ -243,20 +250,16 @@
 
         {{-- Pie de tabla: resumen contadores --}}
         @php
-            $nAdmitidos   = collect($asignaciones)->where('estado_admision', 'Admitido')->count();
-            $nReubicados  = collect($asignaciones)->where('estado_admision', 'Reubicado')->count();
-            $nSinCupo     = collect($asignaciones)->where('estado_admision', 'Sin cupo')->count();
-            $nNoAdmitidos = collect($asignaciones)->where('estado_admision', 'No admitido')->count();
+            $nAdmitidos  = collect($asignaciones)->where('estado_admision', 'Admitido')->count();
+            $nReubicados = collect($asignaciones)->where('estado_admision', 'Reubicado')->count();
+            $nReprobados = collect($asignaciones)->where('estado_admision', 'Reprobado')->count();
         @endphp
         <div class="px-6 py-4 bg-gray-50 border-t flex flex-wrap gap-4 text-xs text-gray-600">
             <span>Total postulantes: <strong>{{ count($asignaciones) }}</strong></span>
-            <span class="text-emerald-700">Admitidos: <strong>{{ $nAdmitidos }}</strong></span>
-            <span class="text-blue-700">Reubicados: <strong>{{ $nReubicados }}</strong></span>
-            @if($nSinCupo > 0)
-            <span class="text-amber-700">Sin cupo: <strong>{{ $nSinCupo }}</strong></span>
-            @endif
-            @if($nNoAdmitidos > 0)
-            <span class="text-red-700">No admitidos: <strong>{{ $nNoAdmitidos }}</strong></span>
+            <span class="text-emerald-700">Admitidos (1ª opción): <strong>{{ $nAdmitidos }}</strong></span>
+            <span class="text-blue-700">Reubicados (2ª opción): <strong>{{ $nReubicados }}</strong></span>
+            @if($nReprobados > 0)
+            <span class="text-red-700">Reprobados: <strong>{{ $nReprobados }}</strong></span>
             @endif
         </div>
     </div>
@@ -270,9 +273,9 @@
                 <p class="text-sm text-gray-500 mt-0.5">
                     Se guardarán los estados de admisión mostrados arriba para
                     <strong>{{ count($asignaciones) }}</strong> postulante(s).
-                    @if($nSinCupo > 0)
-                        <span class="text-amber-600">
-                            {{ $nSinCupo }} quedarán sin cupo disponible.
+                    @if($nReprobados > 0)
+                        <span class="text-red-600">
+                            {{ $nReprobados }} quedarán reprobados (sin cupo o puntaje insuficiente).
                         </span>
                     @endif
                 </p>

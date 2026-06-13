@@ -178,6 +178,39 @@
             </div>
         </div>
 
+        {{-- ── Foto del postulante ────────────────────────────────────────── --}}
+        <div class="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+            <h3 class="font-semibold text-gray-800 mb-1">Foto del postulante</h3>
+            <p class="text-xs text-gray-400 mb-4">
+                Sube una foto reciente tuya en formato <strong>JPG o PNG</strong> (máx. 2 MB).
+            </p>
+            <div class="flex items-center gap-6">
+                <div id="foto-preview-wrap"
+                     class="w-28 h-28 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center shrink-0 overflow-hidden bg-gray-50">
+                    <svg id="foto-icon" class="w-10 h-10 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                              d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                    </svg>
+                    <img id="foto-preview" class="hidden w-full h-full object-cover" src="" alt="Vista previa">
+                </div>
+                <div class="flex-1">
+                    <input type="file" name="foto" id="foto-input" accept=".jpg,.jpeg,.png"
+                           class="block w-full text-sm text-gray-600
+                                  file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0
+                                  file:text-xs file:font-semibold file:text-white file:cursor-pointer
+                                  file:transition file:hover:opacity-90"
+                           onchange="previewFoto(this)">
+                    <p id="foto-nombre" class="text-xs text-[#283342] mt-1 hidden"></p>
+                    @error('foto')
+                        <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
+                    @enderror
+                    <p class="text-xs text-gray-400 mt-2">
+                        <span class="text-red-500 font-bold">*</span> Campo obligatorio. Foto de frente, fondo blanco preferible.
+                    </p>
+                </div>
+            </div>
+        </div>
+
         {{-- ── Documentos requeridos ───────────────────────────────────────── --}}
         <div class="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
             <h3 class="font-semibold text-gray-800 mb-1">Documentos requeridos</h3>
@@ -230,6 +263,23 @@
 
 @push('scripts')
 <script>
+function previewFoto(input) {
+    const preview = document.getElementById('foto-preview');
+    const icon    = document.getElementById('foto-icon');
+    const nombre  = document.getElementById('foto-nombre');
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = e => {
+            preview.src = e.target.result;
+            preview.classList.remove('hidden');
+            icon.classList.add('hidden');
+        };
+        reader.readAsDataURL(input.files[0]);
+        nombre.textContent = '✓ ' + input.files[0].name;
+        nombre.classList.remove('hidden');
+    }
+}
+
 function mostrarNombre(input, labelId) {
     const label = document.getElementById(labelId);
     if (input.files[0]) {

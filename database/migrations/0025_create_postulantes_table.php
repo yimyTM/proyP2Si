@@ -23,6 +23,7 @@ return new class extends Migration
             $table->date('fecha_nacimiento')->nullable();
             $table->string('ciudad', 100)->nullable();
             $table->string('colegio_procedencia', 150)->nullable();
+            $table->string('foto')->nullable()->after('apellido');
             $table->foreignId('idUsuario')
                   ->nullable()
                   ->constrained('users', 'idUsuario')

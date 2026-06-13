@@ -64,6 +64,11 @@ class InscripcionController extends Controller
         }
 
         DB::transaction(function () use ($request, $user, $postulante, $gestionActiva) {
+            $fotoPath = $postulante->foto;
+            if ($request->hasFile('foto')) {
+                $fotoPath = $request->file('foto')->store("fotos/{$postulante->idPost}", 'public');
+            }
+
             $postulante->update([
                 'nombre'              => $request->nombre,
                 'apellidos'           => $request->apellidos,
@@ -74,6 +79,7 @@ class InscripcionController extends Controller
                 'ciudad'              => $request->ciudad,
                 'direccion'           => $request->direccion,
                 'colegio_procedencia' => $request->colegio_procedencia,
+                'foto'                => $fotoPath,
                 'estado'              => 'activo',
             ]);
 

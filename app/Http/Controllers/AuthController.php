@@ -19,10 +19,7 @@ class AuthController extends Controller
         $this->bitacora = $bitacora;
     }
 
-    /**
-     * Muestra el formulario de inicio de sesión.
-     * Si el usuario ya está autenticado, redirige según su rol.
-     */
+
     public function showLogin(): View|RedirectResponse
     {
         if (Auth::check()) {
@@ -32,9 +29,6 @@ class AuthController extends Controller
         return view('auth.login');
     }
 
-    /**
-     * Procesa la solicitud de inicio de sesión.
-     */
     public function login(LoginRequest $request): RedirectResponse
     {
         $user = User::where('correo', $request->correo)->first();

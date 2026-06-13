@@ -115,6 +115,43 @@ class RequisitoPostulanteController extends Controller
         ));
     }
 
+    public function estadoMasivoPostulante(Request $request, Postulante $postulante): RedirectResponse
+    {
+        $data = $request->validate([
+            'requisitos'   => ['required', 'array', 'min:1'],
+            'requisitos.*' => ['integer', 'exists:requisitos,idReq'],
+            'estado'       => ['required', 'in:faltante,pendiente,validado'],
+        ]);
+
+        $estado = $data['estado'];
+
+        foreach ($data['requisitos'] as $idReq) {
+            $registro = Requisito_Postulante::where('idPost', $postulante->idPost)
+                ->where('idReq', $idReq)->first();
+
+            match ($estado) {
+                'faltante'  => $registro?->delete(),
+                'pendiente' => $registro
+                    ? $registro->update(['validado' => false])
+                    : Requisito_Postulante::create([
+                        'idPost'        => $postulante->idPost, 'idReq' => $idReq,
+                        'fecha_entrega' => now()->toDateString(), 'entregado' => true, 'validado' => false,
+                      ]),
+                'validado'  => $registro
+                    ? $registro->update(['validado' => true])
+                    : Requisito_Postulante::create([
+                        'idPost'        => $postulante->idPost, 'idReq' => $idReq,
+                        'fecha_entrega' => now()->toDateString(), 'entregado' => true, 'validado' => true,
+                      ]),
+            };
+        }
+
+        $nombre = "{$postulante->nombre} {$postulante->apellidos}";
+        $n      = count($data['requisitos']);
+        BitacoraService::registrar("Acción masiva: {$n} requisito(s) → «{$estado}» para {$nombre}.");
+        return back()->with('success', "{$n} documento(s) de {$nombre} actualizados a «{$estado}».");
+    }
+
     public function estadoPostulante(Request $request, Postulante $postulante, requisito $requisito): RedirectResponse
     {
         $estado   = $request->validate(['estado' => 'required|in:faltante,pendiente,validado'])['estado'];

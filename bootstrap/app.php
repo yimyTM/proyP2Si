@@ -32,16 +32,25 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->redirectUsersTo('/dashboard');
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        // Sesión expirada (401 → redirigir a login)
         $exceptions->render(function (\Illuminate\Auth\AuthenticationException $e, \Illuminate\Http\Request $request) {
             if (! $request->expectsJson()) {
                 $redirect = redirect()->route('login');
-                // Solo mostrar el mensaje si el usuario tenía una sesión activa (cookie de sesión presente)
                 if ($request->hasCookie(config('session.cookie'))) {
                     $redirect = $redirect->withErrors([
                         'session' => 'Su sesión ha expirado. Por favor, inicie sesión nuevamente.',
                     ]);
                 }
                 return $redirect;
+            }
+        });
+
+        // Token CSRF inválido (419 PAGE EXPIRED → redirigir a login con mensaje)
+        $exceptions->render(function (\Illuminate\Session\TokenMismatchException $e, \Illuminate\Http\Request $request) {
+            if (! $request->expectsJson()) {
+                return redirect()->route('login')
+                    ->withErrors(['session' => 'La página expiró por seguridad. Vuelva a iniciar sesión.'])
+                    ->withInput($request->except('password', '_token'));
             }
         });
     })->create();
