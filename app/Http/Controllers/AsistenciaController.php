@@ -39,7 +39,6 @@ class AsistenciaController extends Controller
             ->when($gestionActiva, fn($q) => $q->where('idGestion', $gestionActiva->idGestion))
             ->with([
                 'modalidad',
-                'turno',
                 'materiGrupos' => fn($q) => $q
                     ->where('codigoDoc', $docente->codigoDoc)
                     ->with('horario', 'materia'),
@@ -73,7 +72,6 @@ class AsistenciaController extends Controller
         // Cargar relaciones del grupo para este docente
         $grupo->load([
             'modalidad',
-            'turno',
             'materiGrupos' => fn($q) => $q
                 ->where('codigoDoc', $docente->codigoDoc)
                 ->with('horario', 'materia', 'aula'),

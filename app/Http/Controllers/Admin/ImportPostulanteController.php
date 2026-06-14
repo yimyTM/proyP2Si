@@ -24,7 +24,7 @@ class ImportPostulanteController extends Controller
     private const CUPO_GRUPO = 70;
 
     /** Estados de inscripción que cuentan como "inscrito activo" a distribuir. */
-    private const ESTADOS_ACTIVOS = ['Habilitado', 'Asignado a grupo'];
+    private const ESTADOS_ACTIVOS = ['Validado', 'Habilitado', 'Asignado a grupo'];
 
     // ── Paso 0: formulario de carga ───────────────────────────────────────────
 

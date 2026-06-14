@@ -74,7 +74,6 @@
                         <th class="px-5 py-3">Grupo</th>
                         <th class="px-5 py-3">Capacidad</th>
                         <th class="px-5 py-3">Modalidad</th>
-                        <th class="px-5 py-3">Turno</th>
                         <th class="px-5 py-3">Materias / Asignaciones</th>
                         <th class="px-5 py-3">Acciones</th>
                     </tr>
@@ -99,7 +98,6 @@
                                 {{ $grupo->modalidad?->nombModalidad ?? '—' }}
                             </span>
                         </td>
-                        <td class="px-5 py-3 text-gray-600">{{ $grupo->turno?->nombTurno ?? '—' }}</td>
                         <td class="px-5 py-3">
                             @if($grupo->materiGrupos->isNotEmpty())
                                 <ul class="space-y-1">

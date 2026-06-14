@@ -73,6 +73,13 @@
                                 <a href="{{ route('admin.gestiones.carreras.index', $g) }}"
                                    class="text-xs text-blue-600 hover:underline font-medium">Cupos</a>
 
+                                @if($g->estaAbierta() && $g->carreras_count > 0)
+                                <a href="{{ route('admin.grupos.apertura', ['gestion' => $g->idGestion]) }}"
+                                   class="text-xs text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-2 py-0.5 rounded-full font-medium transition">
+                                    Crear Grupos
+                                </a>
+                                @endif
+
                                 <a href="{{ route('admin.gestiones.edit', $g) }}"
                                    class="text-xs text-amber-600 hover:underline">Editar</a>
 

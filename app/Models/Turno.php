@@ -12,8 +12,8 @@ class Turno extends Model
 
     protected $fillable = ['nombTurno'];
 
-    public function grupos(): HasMany
+    public function horarios(): HasMany
     {
-        return $this->hasMany(Grupo::class, 'idTurno', 'idTurno');
+        return $this->hasMany(Horario::class, 'idTurno', 'idTurno');
     }
 }

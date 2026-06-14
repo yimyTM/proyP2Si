@@ -1,5 +1,7 @@
 @php
-    $postulante = $postulante ?? null;
+    $postulante    = $postulante ?? null;
+    $carreras      = $carreras ?? collect();
+    $gestionActiva = $gestionActiva ?? null;
 @endphp
 
 @if($errors->any())
@@ -71,3 +73,60 @@
                class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-[#283342]/30">
     </div>
 </div>
+
+{{-- Sección carreras: solo al crear nuevo postulante y si hay gestión activa --}}
+@if(! $postulante && $carreras->isNotEmpty())
+<div class="mt-5 pt-5 border-t border-gray-100">
+    <h4 class="text-sm font-semibold text-gray-700 mb-3">
+        Opciones de carrera
+        @if($gestionActiva)
+            <span class="ml-2 text-xs font-normal text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
+                Gestión activa: {{ $gestionActiva->nombre ?? '#'.$gestionActiva->idGestion }}
+            </span>
+        @else
+            <span class="ml-2 text-xs font-normal text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">
+                Sin gestión activa — las carreras no se inscribirán
+            </span>
+        @endif
+    </h4>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+            <label class="block text-xs font-medium text-gray-600 mb-1">
+                1ª opción de carrera
+                <span class="text-gray-400">(opcional)</span>
+            </label>
+            <select name="carrera_primera"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-[#283342]/30">
+                <option value="">— Sin inscripción —</option>
+                @foreach($carreras as $c)
+                    <option value="{{ $c->codCarrera }}"
+                            {{ old('carrera_primera') == $c->codCarrera ? 'selected' : '' }}>
+                        {{ $c->nombre }}
+                        @if($c->modalidad) ({{ $c->modalidad->nombModalidad }}) @endif
+                    </option>
+                @endforeach
+            </select>
+        </div>
+        <div>
+            <label class="block text-xs font-medium text-gray-600 mb-1">
+                2ª opción de carrera
+                <span class="text-gray-400">(opcional)</span>
+            </label>
+            <select name="carrera_segunda"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-[#283342]/30">
+                <option value="">— Ninguna —</option>
+                @foreach($carreras as $c)
+                    <option value="{{ $c->codCarrera }}"
+                            {{ old('carrera_segunda') == $c->codCarrera ? 'selected' : '' }}>
+                        {{ $c->nombre }}
+                        @if($c->modalidad) ({{ $c->modalidad->nombModalidad }}) @endif
+                    </option>
+                @endforeach
+            </select>
+        </div>
+    </div>
+    <p class="text-xs text-gray-400 mt-2">
+        Si selecciona al menos la 1ª opción, el postulante quedará inscrito en la gestión activa con estado <strong>Validado</strong>.
+    </p>
+</div>
+@endif

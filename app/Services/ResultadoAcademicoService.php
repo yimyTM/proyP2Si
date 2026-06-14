@@ -31,7 +31,10 @@ class ResultadoAcademicoService
         $completo = $esperadas > 0 && $total >= $esperadas;
         $promedio = $this->promedio($notas, $ponderaciones);
 
-        if ($minima < self::NOTA_MINIMA) {
+        $reprobado = $minima < self::NOTA_MINIMA
+                  || ($promedio !== null && $promedio < self::NOTA_MINIMA);
+
+        if ($reprobado) {
             $resultado = 'Reprobado';
         } elseif ($completo) {
             $resultado = 'Aprobado';
@@ -79,9 +82,12 @@ class ResultadoAcademicoService
             ->get();
 
         $esperadas     = $examMaterias->count();
-        $ponderaciones = $examMaterias->mapWithKeys(
-            fn ($em) => [$em->idEx_materia => (float) ($em->examen->ponderacion ?? 0)]
-        )->toArray();
+        // Peso efectivo = ponderación del examen × puntaje de la materia dentro del examen
+        $ponderaciones = $examMaterias->mapWithKeys(function ($em) {
+            $examPond  = (float) ($em->examen->ponderacion ?? 1);
+            $materPunt = (float) ($em->puntaje ?? 1);
+            return [$em->idEx_materia => $examPond * $materPunt];
+        })->toArray();
 
         $inscripciones = Inscripcion::where('idGestion', $idGestion)
             ->with(['postulante', 'grupo'])

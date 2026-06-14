@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Grupo extends Model
@@ -26,6 +27,11 @@ class Grupo extends Model
     public function turno(): BelongsTo
     {
         return $this->belongsTo(Turno::class, 'idTurno', 'idTurno');
+    }
+
+    public function horarios(): BelongsToMany
+    {
+        return $this->belongsToMany(Horario::class, 'grupo__horarios', 'codigoG', 'idHorario');
     }
 
     public function materiGrupos(): HasMany

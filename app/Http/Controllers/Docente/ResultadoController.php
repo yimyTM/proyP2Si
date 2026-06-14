@@ -30,7 +30,7 @@ class ResultadoController extends Controller
             ->pluck('codigoG');
 
         $grupos = Grupo::whereIn('codigoG', $gruposIds)
-            ->with(['gestion', 'modalidad', 'turno', 'inscripciones'])
+            ->with(['gestion', 'modalidad', 'inscripciones'])
             ->get();
 
         foreach ($grupos as $grupo) {
@@ -51,7 +51,7 @@ class ResultadoController extends Controller
             ->where('codigoG', $grupo)
             ->firstOrFail();
 
-        $grupoModel = Grupo::with(['gestion', 'modalidad', 'turno'])->findOrFail($grupo);
+        $grupoModel = Grupo::with(['gestion', 'modalidad'])->findOrFail($grupo);
         $gestion    = $grupoModel->gestion;
 
         abort_unless($gestion, 404, 'El grupo no tiene gestión académica asignada.');

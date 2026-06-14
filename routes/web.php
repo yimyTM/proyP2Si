@@ -10,6 +10,7 @@ use App\Http\Controllers\PasswordResetController;
 use App\Http\Controllers\DocenteController;
 use App\Http\Controllers\Admin\AsignacionDocenteController;
 use App\Http\Controllers\Admin\AdmisionController;
+use App\Http\Controllers\Admin\AperturaGruposController;
 use App\Http\Controllers\Admin\ImportPostulanteController;
 use App\Http\Controllers\Admin\ReporteController;
 use App\Http\Controllers\RegistroController;
@@ -27,10 +28,14 @@ use App\Http\Controllers\AsistenciaController;
 use App\Http\Controllers\Docente\CalificacionController;
 use App\Http\Controllers\Docente\ResultadoController;
 use Illuminate\Support\Facades\Auth;
+use App\Http\Controllers\ChatbotController;
 use Illuminate\Support\Facades\Route;
 
 // ── Raíz / Landing pública ────────────────────────────────────────────────────
 Route::get('/', [RegistroController::class, 'landing'])->name('home');
+
+// ── Chatbot público (sin autenticación) ───────────────────────────────────────
+Route::post('/chatbot', [ChatbotController::class, 'chat'])->name('chatbot.chat');
 
 // ── Registro de postulante – Paso 1 (solo invitados) ──────────────────────────
 Route::middleware('guest')->group(function () {
@@ -131,11 +136,16 @@ Route::middleware(['auth', 'role:Administrador,Autoridades,Coordinador'])
 
         // CU05 – Búsqueda y gestión de postulantes
         Route::get('/estudiantes', [PostulanteController::class, 'buscar'])->name('estudiantes');
+        Route::post('/postulantes/{postulante}/pago', [PostulanteController::class, 'gestionarPago'])->name('postulantes.pago');
         Route::resource('postulantes', PostulanteController::class)->except(['index']);
 
         // CU03 – CRUD Aulas
         Route::resource('aulas', AulaController::class)
             ->parameters(['aulas' => 'aula']);
+
+        // CU09 – Apertura automática de grupos
+        Route::get('/grupos/apertura',  [AperturaGruposController::class, 'index'])->name('grupos.apertura');
+        Route::post('/grupos/apertura', [AperturaGruposController::class, 'calcular'])->name('grupos.apertura.calcular');
 
         // CU06 – CRUD Grupos (manual)
         Route::get('/grupos/distribuir',  [GrupoController::class, 'distribuirPreview'])->name('grupos.distribuir');

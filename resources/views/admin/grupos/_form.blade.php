@@ -61,22 +61,6 @@
         </select>
     </div>
 
-    {{-- Turno --}}
-    <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1.5">
-            Turno <span class="text-red-500">*</span>
-        </label>
-        <select name="idTurno"
-                class="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#283342]/30">
-            <option value="">Seleccione...</option>
-            @foreach($turnos as $t)
-                <option value="{{ $t->idTurno }}"
-                    {{ old('idTurno', $edicion ? $grupo->idTurno : '') == $t->idTurno ? 'selected' : '' }}>
-                    {{ $t->nombTurno }}
-                </option>
-            @endforeach
-        </select>
-    </div>
 
 </div>
 

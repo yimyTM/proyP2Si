@@ -45,6 +45,7 @@ class GestionCarreraController extends Controller
 
         return redirect()
             ->route('admin.gestiones.carreras.index', $gestion)
-            ->with('success', 'Cupos por carrera guardados correctamente.');
+            ->with('success', 'Cupos guardados correctamente.')
+            ->with('ofrecer_apertura', true);
     }
 }

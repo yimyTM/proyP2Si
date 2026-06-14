@@ -56,31 +56,57 @@ class MateriGrupoController extends Controller
                 ->with('error', 'Este grupo ya tiene asignada esa materia.');
         }
 
-        // ── Colisión de docente (mismo horario en cualquier grupo) ────────────
+        // ── Obtener datos del horario para comparar solapamiento ─────────────
+        $nuevoHorario = DB::table('horarios')->where('idHorario', $data['idHorario'])->first();
+        if (! $nuevoHorario) {
+            return back()->withInput()->withErrors(['idHorario' => 'Horario no encontrado.']);
+        }
+
+        // ── Colisión de docente: mismo día con horario solapado ───────────────
         $colisionDocente = DB::table('materi_grupos')
-            ->where('idHorario', $data['idHorario'])
-            ->where('codigoDoc', $data['codigoDoc'])
+            ->join('horarios', 'materi_grupos.idHorario', '=', 'horarios.idHorario')
+            ->where('materi_grupos.codigoDoc', $data['codigoDoc'])
+            ->where('horarios.dia', $nuevoHorario->dia)
+            ->where('horarios.hora_ini', '<', $nuevoHorario->hora_fin)
+            ->where('horarios.hora_fin', '>', $nuevoHorario->hora_ini)
             ->exists();
 
         if ($colisionDocente) {
             return back()->withInput()->withErrors([
-                'codigoDoc' => 'El docente seleccionado ya tiene una clase asignada en este horario.',
+                'codigoDoc' => 'El docente ya tiene una clase asignada en un horario que se solapa con el seleccionado.',
             ]);
         }
 
-        // ── Colisión de aula (misma aula, mismo horario) ──────────────────────
+        // ── Colisión de aula: misma aula, mismo día, horario solapado ─────────
         $colisionAula = DB::table('materi_grupos')
-            ->where('idHorario', $data['idHorario'])
-            ->where('idAula',    $data['idAula'])
+            ->join('horarios', 'materi_grupos.idHorario', '=', 'horarios.idHorario')
+            ->where('materi_grupos.idAula', $data['idAula'])
+            ->where('horarios.dia', $nuevoHorario->dia)
+            ->where('horarios.hora_ini', '<', $nuevoHorario->hora_fin)
+            ->where('horarios.hora_fin', '>', $nuevoHorario->hora_ini)
             ->exists();
 
         if ($colisionAula) {
             return back()->withInput()->withErrors([
-                'idAula' => 'El aula seleccionada ya está ocupada en este horario.',
+                'idAula' => 'El aula ya está ocupada en un horario que se solapa con el seleccionado.',
             ]);
         }
 
-        // ── Límite de 4 grupos por docente en la gestión activa ───────────────
+        // ── Colisión del grupo: el mismo grupo no puede tener dos materias solapadas
+        $colisionGrupo = DB::table('materi_grupos')
+            ->join('horarios', 'materi_grupos.idHorario', '=', 'horarios.idHorario')
+            ->where('materi_grupos.codigoG', $grupo->codigoG)
+            ->where('horarios.dia', $nuevoHorario->dia)
+            ->where('horarios.hora_ini', '<', $nuevoHorario->hora_fin)
+            ->where('horarios.hora_fin', '>', $nuevoHorario->hora_ini)
+            ->exists();
+
+        if ($colisionGrupo) {
+            return back()->withInput()
+                ->with('error', 'El grupo ya tiene una materia asignada en un horario que se solapa con el seleccionado.');
+        }
+
+        // ── Límite de 4 grupos por docente en la misma gestión ───────────────
         $gruposConDocente = DB::table('materi_grupos')
             ->join('grupos', 'materi_grupos.codigoG', '=', 'grupos.codigoG')
             ->where('materi_grupos.codigoDoc', $data['codigoDoc'])
@@ -90,7 +116,7 @@ class MateriGrupoController extends Controller
 
         if ($gruposConDocente >= 4) {
             return back()->withInput()->withErrors([
-                'codigoDoc' => 'El docente ha alcanzado el límite máximo de 4 grupos por gestión.',
+                'codigoDoc' => 'El docente ya tiene el máximo de 4 grupos asignados en esta gestión.',
             ]);
         }
 

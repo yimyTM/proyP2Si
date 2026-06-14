@@ -4,7 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\PostulanteRequest;
 use App\Models\Carrera;
+use App\Models\Carrera_Inscrito;
 use App\Models\Gestion;
+use App\Models\Inscripcion;
+use App\Models\Pago;
 use App\Models\Postulante;
 use App\Services\BitacoraService;
 use App\Services\CuentaProvisionaService;
@@ -190,15 +193,103 @@ class PostulanteController extends Controller
         return view('admin.estudiantes', compact('postulantes', 'carreras'));
     }
 
+    // ── Gestión de pago e inscripción (Admin) ─────────────────────────────────
+
+    public function gestionarPago(Request $request, Postulante $postulante): RedirectResponse
+    {
+        $request->validate(['estado_pago' => ['required', 'in:aprobado,pendiente']]);
+
+        $nuevoEstado   = $request->estado_pago;
+        $gestionActiva = Gestion::where('estado', 'Abierta')->first();
+
+        // Si se va a aprobar y no tiene inscripción, la carrera es obligatoria
+        $inscripcionExistente = $gestionActiva
+            ? Inscripcion::where('idPost', $postulante->idPost)
+                ->where('idGestion', $gestionActiva->idGestion)
+                ->first()
+            : null;
+
+        if ($nuevoEstado === 'aprobado' && $gestionActiva && ! $inscripcionExistente) {
+            $request->validate([
+                'carrera_primera'  => ['required', 'exists:carreras,codCarrera'],
+                'carrera_segunda'  => ['nullable', 'exists:carreras,codCarrera', 'different:carrera_primera'],
+            ], [
+                'carrera_primera.required' => 'Seleccione la carrera de primera opción para inscribir al postulante.',
+            ]);
+        }
+
+        // Crear o actualizar pago
+        $pago = $postulante->pagos()->latest()->first();
+        if ($pago) {
+            $pago->update(['estado' => $nuevoEstado]);
+        } else {
+            $postulante->pagos()->create([
+                'monto'  => 150,
+                'fecha'  => now()->toDateString(),
+                'estado' => $nuevoEstado,
+            ]);
+        }
+
+        $msg = $nuevoEstado === 'aprobado' ? 'Pago aprobado.' : 'Pago marcado como pendiente.';
+
+        if ($nuevoEstado === 'aprobado' && $gestionActiva) {
+            if (! $inscripcionExistente) {
+                // Crear inscripción con carreras → directamente Validado
+                $inscripcion = Inscripcion::create([
+                    'fecha'     => now()->toDateString(),
+                    'estado'    => 'Validado',
+                    'idPost'    => $postulante->idPost,
+                    'idGestion' => $gestionActiva->idGestion,
+                ]);
+                Carrera_Inscrito::create([
+                    'prioridad'     => 1,
+                    'idInscripcion' => $inscripcion->idInscripcion,
+                    'codCarrera'    => $request->carrera_primera,
+                ]);
+                if ($request->filled('carrera_segunda')) {
+                    Carrera_Inscrito::create([
+                        'prioridad'     => 2,
+                        'idInscripcion' => $inscripcion->idInscripcion,
+                        'codCarrera'    => $request->carrera_segunda,
+                    ]);
+                }
+                $msg .= " Inscrito en Gestión #{$gestionActiva->idGestion} con carrera asignada.";
+            } elseif ($inscripcionExistente->estado === 'Pendiente') {
+                $inscripcionExistente->update(['estado' => 'Validado']);
+                $msg .= " Expediente validado automáticamente.";
+            } else {
+                $msg .= " El postulante ya tiene inscripción activa ({$inscripcionExistente->estado}).";
+            }
+        }
+
+        BitacoraService::registrar("Pago de {$postulante->nombre_completo} → {$nuevoEstado}.");
+
+        return back()->with('success', $msg);
+    }
+
     // ── CRUD Admin ────────────────────────────────────────────────────────────
 
     public function create(): View
     {
-        return view('admin.postulantes.create');
+        $carreras      = Carrera::with('modalidad')->orderBy('nombre')->get();
+        $gestionActiva = Gestion::where('estado', 'Abierta')->first();
+        return view('admin.postulantes.create', compact('carreras', 'gestionActiva'));
     }
 
     public function store(PostulanteRequest $request): RedirectResponse
     {
+        // Validar carreras si se proporcionaron
+        if ($request->filled('carrera_primera')) {
+            $request->validate([
+                'carrera_primera' => ['required', 'exists:carreras,codCarrera'],
+                'carrera_segunda' => ['nullable', 'exists:carreras,codCarrera', 'different:carrera_primera'],
+            ], [
+                'carrera_primera.exists'   => 'La 1ª carrera seleccionada no es válida.',
+                'carrera_segunda.exists'   => 'La 2ª carrera seleccionada no es válida.',
+                'carrera_segunda.different'=> 'La 2ª opción debe ser diferente a la 1ª.',
+            ]);
+        }
+
         $postulante = Postulante::create($request->validated());
 
         $passwordPlano = CuentaProvisionaService::sincronizarCuentaPostulante($postulante);
@@ -208,6 +299,33 @@ class PostulanteController extends Controller
         $mensaje = 'Postulante registrado correctamente.';
         if ($passwordPlano) {
             $mensaje .= " Contraseña provisional: {$passwordPlano}";
+        }
+
+        // Inscribir en la gestión activa si se eligieron carreras
+        if ($request->filled('carrera_primera')) {
+            $gestionActiva = Gestion::where('estado', 'Abierta')->first();
+            if ($gestionActiva) {
+                $inscripcion = Inscripcion::create([
+                    'fecha'     => now()->toDateString(),
+                    'estado'    => 'Validado',
+                    'idPost'    => $postulante->idPost,
+                    'idGestion' => $gestionActiva->idGestion,
+                ]);
+                Carrera_Inscrito::create([
+                    'prioridad'     => 1,
+                    'idInscripcion' => $inscripcion->idInscripcion,
+                    'codCarrera'    => $request->carrera_primera,
+                ]);
+                if ($request->filled('carrera_segunda')) {
+                    Carrera_Inscrito::create([
+                        'prioridad'     => 2,
+                        'idInscripcion' => $inscripcion->idInscripcion,
+                        'codCarrera'    => $request->carrera_segunda,
+                    ]);
+                }
+                $labelGestion = $gestionActiva->nombre ?: '#'.$gestionActiva->idGestion;
+                $mensaje .= " Inscrito en la gestión activa ({$labelGestion}).";
+            }
         }
 
         return redirect()

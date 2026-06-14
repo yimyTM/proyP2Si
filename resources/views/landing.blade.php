@@ -247,6 +247,67 @@
     </div>
 </footer>
 
+{{-- ── Chatbot flotante ─────────────────────────────────────────────────────── --}}
+<div id="chat-widget" class="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-3">
+
+    {{-- Panel del chat --}}
+    <div id="chat-panel"
+         class="hidden w-88 bg-white rounded-2xl shadow-2xl border border-gray-200 flex-col overflow-hidden"
+         style="max-height: 520px;">
+
+        {{-- Header --}}
+        <div class="flex items-center justify-between px-4 py-3 bg-ficct-primary">
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
+                    <span class="material-symbols-outlined text-white text-base">smart_toy</span>
+                </div>
+                <div>
+                    <p class="text-white font-semibold text-sm leading-tight">Asistente FICCT</p>
+                    <p class="text-white/60 text-xs">En línea</p>
+                </div>
+            </div>
+            <button onclick="toggleChat()" class="text-white/70 hover:text-white transition">
+                <span class="material-symbols-outlined text-xl">close</span>
+            </button>
+        </div>
+
+        {{-- Mensajes --}}
+        <div id="chat-messages" class="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50" style="min-height:260px; max-height:330px;">
+            <div class="flex gap-2">
+                <div class="w-6 h-6 rounded-full bg-ficct-primary flex items-center justify-center shrink-0 mt-0.5">
+                    <span class="material-symbols-outlined text-white text-xs">smart_toy</span>
+                </div>
+                <div class="bg-white border border-gray-200 rounded-2xl rounded-tl-none px-3 py-2 text-sm text-gray-700 shadow-sm max-w-[80%]">
+                    ¡Hola! Soy el asistente virtual de la FICCT. ¿En qué puedo ayudarte? Puedo responder preguntas sobre inscripción de postulantes y postulación docente.
+                </div>
+            </div>
+        </div>
+
+        {{-- Input --}}
+        <div class="px-3 py-3 border-t border-gray-100 bg-white flex gap-2">
+            <input id="chat-input"
+                   type="text"
+                   placeholder="Escribe tu consulta..."
+                   maxlength="500"
+                   class="flex-1 text-sm border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:border-ficct-primary transition"
+                   onkeydown="if(event.key==='Enter' && !event.shiftKey){ event.preventDefault(); sendMessage(); }">
+            <button onclick="sendMessage()"
+                    id="chat-send-btn"
+                    class="w-9 h-9 rounded-xl bg-ficct-primary hover:bg-ficct-container flex items-center justify-center shrink-0 transition disabled:opacity-40"
+                    title="Enviar">
+                <span class="material-symbols-outlined text-white text-base">send</span>
+            </button>
+        </div>
+    </div>
+
+    {{-- Botón flotante --}}
+    <button onclick="toggleChat()"
+            id="chat-fab"
+            class="w-14 h-14 rounded-full bg-ficct-primary hover:bg-ficct-container shadow-xl flex items-center justify-center transition-transform hover:scale-105 active:scale-95">
+        <span id="chat-fab-icon" class="material-symbols-outlined text-white text-2xl">chat</span>
+    </button>
+</div>
+
 <script>
 // Counter animation
 const counters = document.querySelectorAll('.counter-animate');
@@ -272,6 +333,110 @@ counters.forEach(c => observer.observe(c));
 window.addEventListener('scroll', () => {
     document.getElementById('navbar').classList.toggle('scrolled', window.scrollY > 20);
 });
+
+// ── Chatbot ──────────────────────────────────────────────────────────────────
+const chatPanel  = document.getElementById('chat-panel');
+const chatFabIcon = document.getElementById('chat-fab-icon');
+let chatOpen = false;
+
+function toggleChat() {
+    chatOpen = !chatOpen;
+    if (chatOpen) {
+        chatPanel.classList.remove('hidden');
+        chatPanel.classList.add('flex');
+        chatFabIcon.textContent = 'close';
+        document.getElementById('chat-input').focus();
+    } else {
+        chatPanel.classList.add('hidden');
+        chatPanel.classList.remove('flex');
+        chatFabIcon.textContent = 'chat';
+    }
+}
+
+function appendMessage(text, role) {
+    const container = document.getElementById('chat-messages');
+    const isBot = role === 'bot';
+
+    const wrapper = document.createElement('div');
+    wrapper.className = isBot ? 'flex gap-2' : 'flex gap-2 justify-end';
+
+    if (isBot) {
+        wrapper.innerHTML = `
+            <div class="w-6 h-6 rounded-full bg-ficct-primary flex items-center justify-center shrink-0 mt-0.5">
+                <span class="material-symbols-outlined text-white text-xs">smart_toy</span>
+            </div>
+            <div class="bg-white border border-gray-200 rounded-2xl rounded-tl-none px-3 py-2 text-sm text-gray-700 shadow-sm max-w-[80%] whitespace-pre-line">${escapeHtml(text)}</div>`;
+    } else {
+        wrapper.innerHTML = `
+            <div class="bg-ficct-primary text-white rounded-2xl rounded-tr-none px-3 py-2 text-sm max-w-[80%]">${escapeHtml(text)}</div>`;
+    }
+
+    container.appendChild(wrapper);
+    container.scrollTop = container.scrollHeight;
+    return wrapper;
+}
+
+function appendTyping() {
+    const container = document.getElementById('chat-messages');
+    const wrapper = document.createElement('div');
+    wrapper.id = 'chat-typing';
+    wrapper.className = 'flex gap-2';
+    wrapper.innerHTML = `
+        <div class="w-6 h-6 rounded-full bg-ficct-primary flex items-center justify-center shrink-0 mt-0.5">
+            <span class="material-symbols-outlined text-white text-xs">smart_toy</span>
+        </div>
+        <div class="bg-white border border-gray-200 rounded-2xl rounded-tl-none px-3 py-2 shadow-sm flex gap-1 items-center">
+            <span class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay:0ms"></span>
+            <span class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay:150ms"></span>
+            <span class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay:300ms"></span>
+        </div>`;
+    container.appendChild(wrapper);
+    container.scrollTop = container.scrollHeight;
+}
+
+function removeTyping() {
+    document.getElementById('chat-typing')?.remove();
+}
+
+function escapeHtml(str) {
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+async function sendMessage() {
+    const input = document.getElementById('chat-input');
+    const btn   = document.getElementById('chat-send-btn');
+    const text  = input.value.trim();
+    if (!text) return;
+
+    input.value = '';
+    input.disabled = true;
+    btn.disabled   = true;
+
+    appendMessage(text, 'user');
+    appendTyping();
+
+    try {
+        const res = await fetch('{{ route('chatbot.chat') }}', {
+            method:  'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+            },
+            body: JSON.stringify({ message: text }),
+        });
+
+        const data = await res.json();
+        removeTyping();
+        appendMessage(data.reply ?? data.error ?? 'Error al procesar la respuesta.', 'bot');
+    } catch {
+        removeTyping();
+        appendMessage('No se pudo conectar con el servidor. Intenta de nuevo.', 'bot');
+    } finally {
+        input.disabled = false;
+        btn.disabled   = false;
+        input.focus();
+    }
+}
 </script>
 </body>
 </html>

@@ -18,9 +18,6 @@ return new class extends Migration
             $table->foreignId('codeModalidad')
                   ->constrained('modalidads', 'codeModalidad')
                   ->onDelete('cascade');
-            $table->foreignId('idTurno')
-                  ->constrained('turnos', 'idTurno')
-                  ->onDelete('cascade');
             $table->foreignId('idGestion')
                   ->constrained('gestions', 'idGestion')
                   ->onDelete('cascade');

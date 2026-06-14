@@ -25,7 +25,7 @@ class GrupoController extends Controller
         $gestionActiva = Gestion::where('estado', 'Abierta')->first();
 
         $grupos = Grupo::with([
-            'modalidad', 'turno',
+            'modalidad',
             'materiGrupos.materia',
             'materiGrupos.horario',
             'materiGrupos.aula',
@@ -65,7 +65,6 @@ class GrupoController extends Controller
             ],
             'capacidad'     => ['required', 'integer', 'min:1', 'max:500'],
             'codeModalidad' => ['required', 'integer', 'exists:modalidads,codeModalidad'],
-            'idTurno'       => ['required', 'integer', 'exists:turnos,idTurno'],
         ], [
             'numero_grupo.unique' => 'Ya existe un grupo con este número en la gestión actual.',
         ]);
@@ -74,7 +73,6 @@ class GrupoController extends Controller
             'numero_grupo'  => $data['numero_grupo'],
             'capacidad'     => $data['capacidad'],
             'codeModalidad' => $data['codeModalidad'],
-            'idTurno'       => $data['idTurno'],
             'idGestion'     => $gestionActiva->idGestion,
         ]);
 
@@ -114,25 +112,14 @@ class GrupoController extends Controller
             ],
             'capacidad'     => ['required', 'integer', 'min:1', 'max:500'],
             'codeModalidad' => ['required', 'integer', 'exists:modalidads,codeModalidad'],
-            'idTurno'       => ['required', 'integer', 'exists:turnos,idTurno'],
         ], [
             'numero_grupo.unique' => 'Ya existe un grupo con este número en la gestión actual.',
         ]);
-
-        if (! empty($data['idAula'])) {
-            $aula = Aula::find($data['idAula']);
-            if ($aula && $data['capacidad'] > $aula->capacidad) {
-                return back()->withInput()->withErrors([
-                    'capacidad' => "La capacidad ingresada ({$data['capacidad']}) supera la capacidad máxima del aula seleccionada ({$aula->capacidad} cupos).",
-                ]);
-            }
-        }
 
         $grupo->update([
             'numero_grupo'  => $data['numero_grupo'],
             'capacidad'     => $data['capacidad'],
             'codeModalidad' => $data['codeModalidad'],
-            'idTurno'       => $data['idTurno'],
         ]);
 
         BitacoraService::registrar("CU06: Grupo «{$grupo->numero_grupo}» (#{$grupo->codigoG}) actualizado.");
@@ -178,7 +165,7 @@ class GrupoController extends Controller
 
         // Include already-assigned for redistribution preview
         $postulantes = \App\Models\Inscripcion::where('idGestion', $gestion->idGestion)
-            ->whereIn('estado', ['Habilitado', 'Asignado a grupo'])
+            ->whereIn('estado', ['Validado', 'Habilitado', 'Asignado a grupo'])
             ->with('postulante')
             ->whereHas('postulante')
             ->get()
@@ -195,12 +182,16 @@ class GrupoController extends Controller
         $yaDistribuido    = $postulantes->contains('estado', 'Asignado a grupo');
         $capacidadOk      = $totalPostulantes <= $capacidadTotal;
 
-        // Round-robin alphabetical distribution
+        // Distribución secuencial: llena cada grupo hasta su capacidad antes de pasar al siguiente
         $distribucion = $grupos->mapWithKeys(fn($g) => [$g->codigoG => collect()]);
         if ($capacidadOk) {
-            foreach ($postulantes as $i => $insc) {
-                $codigoG = $grupos[$i % $grupos->count()]->codigoG;
-                $distribucion[$codigoG]->push($insc);
+            $gi = 0;
+            foreach ($postulantes as $insc) {
+                while ($gi < $grupos->count() - 1
+                    && $distribucion[$grupos[$gi]->codigoG]->count() >= $grupos[$gi]->capacidad) {
+                    $gi++;
+                }
+                $distribucion[$grupos[$gi]->codigoG]->push($insc);
             }
         }
 
@@ -229,7 +220,7 @@ class GrupoController extends Controller
         }
 
         $postulantes = \App\Models\Inscripcion::where('idGestion', $gestion->idGestion)
-            ->whereIn('estado', ['Habilitado', 'Asignado a grupo'])
+            ->whereIn('estado', ['Validado', 'Habilitado', 'Asignado a grupo'])
             ->whereHas('postulante')
             ->with('postulante')
             ->get()
@@ -249,12 +240,18 @@ class GrupoController extends Controller
         }
 
         DB::transaction(function () use ($postulantes, $grupos) {
-            foreach ($postulantes as $i => $insc) {
-                $grupo = $grupos[$i % $grupos->count()];
+            $gi      = 0;
+            $enGrupo = 0;
+            foreach ($postulantes as $insc) {
+                if ($gi < $grupos->count() - 1 && $enGrupo >= $grupos[$gi]->capacidad) {
+                    $gi++;
+                    $enGrupo = 0;
+                }
                 $insc->update([
-                    'codigoG' => $grupo->codigoG,
+                    'codigoG' => $grupos[$gi]->codigoG,
                     'estado'  => 'Asignado a grupo',
                 ]);
+                $enGrupo++;
             }
         });
 
@@ -288,7 +285,6 @@ class GrupoController extends Controller
     {
         return [
             'modalidades' => Modalidad::orderBy('nombModalidad')->get(),
-            'turnos'      => Turno::orderBy('nombTurno')->get(),
             'horarios'    => Horario::orderBy('dia')->orderBy('hora_ini')->get(),
             'aulas'       => Aula::orderBy('idAula')->get(),
             'materias'    => Materia::orderBy('nombMateria')->get(),

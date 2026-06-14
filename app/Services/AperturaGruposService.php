@@ -4,84 +4,113 @@ namespace App\Services;
 
 use App\Models\Gestion;
 use App\Models\Grupo;
+use App\Models\Modalidad;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 /**
- * CU09 – Apertura automática de grupos.
- * Usa los cupos configurados por carrera en gestion_carreras (máx. alumnos por grupo).
+ * CU09 – Apertura automática de grupos mixtos.
+ *
+ * Los postulantes NO se separan por carrera durante el CUP: todos toman las
+ * mismas materias. La carrera elegida solo importa para la admisión (CU13).
+ * Los grupos se separan por MODALIDAD (Presencial / Virtual).
+ *
+ * Algoritmo:
+ *   grupos_por_modalidad = ⌈inscritos_validados_modalidad ÷ capacidad_por_grupo⌉
+ *   capacidad de cada grupo = distribuida equitativamente
  */
 class AperturaGruposService
 {
     /**
-     * @return array{grupos_creados: Collection, resumen: array}
+     * Calcula cuántos grupos se crearían SIN persistir nada.
+     * Útil para mostrar el preview en el formulario.
+     *
+     * @return array<int, array{modalidad: string, inscritos: int, numGrupos: int}>
      */
-    public static function calcularYAbrir(Gestion $gestion, int $turnoId): array
+    public static function preview(int $idGestion, int $capacidadPorGrupo): array
     {
-        $gestion->load(['carreras.modalidad']);
+        $resultado = [];
+        foreach (Modalidad::all() as $modalidad) {
+            $inscritos = self::contarInscritos($idGestion, $modalidad->codeModalidad);
+            $resultado[] = [
+                'codeModalidad' => $modalidad->codeModalidad,
+                'modalidad'     => $modalidad->nombModalidad,
+                'inscritos'     => $inscritos,
+                'numGrupos'     => $capacidadPorGrupo > 0 ? (int) ceil($inscritos / $capacidadPorGrupo) : 0,
+            ];
+        }
+        return $resultado;
+    }
 
-        if ($gestion->carreras->isEmpty()) {
+    /**
+     * Ejecuta el algoritmo y persiste los grupos en la BD.
+     *
+     * @return array{grupos_creados: Collection, resumen: array, error?: string}
+     */
+    public static function calcularYAbrir(Gestion $gestion, int $capacidadPorGrupo): array
+    {
+        if ($capacidadPorGrupo <= 0) {
             return [
                 'grupos_creados' => collect(),
                 'resumen'        => [],
-                'error'          => 'No hay carreras con cupos configurados para esta gestión.',
+                'error'          => 'La capacidad por grupo debe ser mayor a 0.',
             ];
         }
 
+        $modalidades   = Modalidad::all();
         $gruposCreados = collect();
         $resumen       = [];
 
-        DB::transaction(function () use ($gestion, $turnoId, &$gruposCreados, &$resumen) {
+        DB::transaction(function () use ($gestion, $capacidadPorGrupo, $modalidades, &$gruposCreados, &$resumen) {
 
-            foreach ($gestion->carreras as $carrera) {
-                $capacidadMax = (int) $carrera->pivot->cupos;
+            $contador = Grupo::where('idGestion', $gestion->idGestion)->count();
 
-                $totalInscritos = self::contarInscritosValidados($gestion->idGestion, $carrera->codCarrera);
+            foreach ($modalidades as $modalidad) {
+
+                $totalInscritos = self::contarInscritos($gestion->idGestion, $modalidad->codeModalidad);
 
                 if ($totalInscritos === 0) {
                     $resumen[] = [
-                        'carrera'    => $carrera->nombre,
-                        'modalidad'  => $carrera->modalidad?->nombModalidad ?? '—',
-                        'cuposMax'   => $capacidadMax,
-                        'inscritos'  => 0,
-                        'numGrupos'  => 0,
-                        'grupos'     => [],
-                        'mensaje'    => 'Sin inscritos — no se abrió ningún grupo.',
+                        'modalidad'        => $modalidad->nombModalidad,
+                        'capacidadPorGrupo'=> $capacidadPorGrupo,
+                        'inscritos'        => 0,
+                        'numGrupos'        => 0,
+                        'grupos'           => [],
+                        'mensaje'          => 'Sin inscritos validados en esta modalidad — no se creó ningún grupo.',
                     ];
                     continue;
                 }
 
-                $numGrupos       = (int) ceil($totalInscritos / $capacidadMax);
-                $capacidadBase   = (int) floor($totalInscritos / $numGrupos);
-                $resto           = $totalInscritos % $numGrupos;
-                $gruposDeCarrera = [];
+                $numGrupos     = (int) ceil($totalInscritos / $capacidadPorGrupo);
+                $resto         = $totalInscritos % $capacidadPorGrupo; // alumnos en el último grupo
+                $gruposDeModal = [];
 
                 for ($i = 1; $i <= $numGrupos; $i++) {
-                    $capacidadGrupo = ($i <= $resto)
-                        ? $capacidadBase + 1
-                        : $capacidadBase;
+                    $contador++;
+                    $numeroGrupo = 'G-' . str_pad($contador, 2, '0', STR_PAD_LEFT);
 
                     $grupo = Grupo::create([
-                        'capacidad'     => $capacidadGrupo,
-                        'codeModalidad' => $carrera->codeModalidad,
-                        'idTurno'       => $turnoId,
+                        'numero_grupo'  => $numeroGrupo,
+                        'capacidad'     => $capacidadPorGrupo,
+                        'codeModalidad' => $modalidad->codeModalidad,
+                        'idGestion'     => $gestion->idGestion,
                     ]);
 
                     $gruposCreados->push($grupo);
-                    $gruposDeCarrera[] = [
-                        'codigoG'   => $grupo->codigoG,
-                        'capacidad' => $capacidadGrupo,
+                    $gruposDeModal[] = [
+                        'codigoG'      => $grupo->codigoG,
+                        'numero_grupo' => $numeroGrupo,
+                        'capacidad'    => $capacidadPorGrupo,
                     ];
                 }
 
                 $resumen[] = [
-                    'carrera'    => $carrera->nombre,
-                    'modalidad'  => $carrera->modalidad?->nombModalidad ?? '—',
-                    'cuposMax'   => $capacidadMax,
-                    'inscritos'  => $totalInscritos,
-                    'numGrupos'  => $numGrupos,
-                    'grupos'     => $gruposDeCarrera,
-                    'mensaje'    => null,
+                    'modalidad'        => $modalidad->nombModalidad,
+                    'capacidadPorGrupo'=> $capacidadPorGrupo,
+                    'inscritos'        => $totalInscritos,
+                    'numGrupos'        => $numGrupos,
+                    'grupos'           => $gruposDeModal,
+                    'mensaje'          => null,
                 ];
             }
         });
@@ -92,14 +121,20 @@ class AperturaGruposService
         ];
     }
 
-    private static function contarInscritosValidados(int $idGestion, int $codCarrera): int
+    /**
+     * Total de inscritos validados en una gestión para una modalidad dada.
+     * Se cuenta por inscripción única (un postulante = una inscripción).
+     */
+    private static function contarInscritos(int $idGestion, int $codeModalidad): int
     {
-        return DB::table('carrera__inscritos as ci')
-            ->join('inscripcions as i', 'i.idInscripcion', '=', 'ci.idInscripcion')
+        return DB::table('inscripcions as i')
+            ->join('carrera__inscritos as ci', 'ci.idInscripcion', '=', 'i.idInscripcion')
+            ->join('carreras as c', 'c.codCarrera', '=', 'ci.codCarrera')
             ->where('i.idGestion', $idGestion)
-            ->where('i.estado', 'validada')
-            ->where('ci.codCarrera', $codCarrera)
+            ->where('i.estado', 'Validado')
+            ->where('c.codeModalidad', $codeModalidad)
             ->where('ci.prioridad', 1)
-            ->count();
+            ->distinct('i.idInscripcion')
+            ->count('i.idInscripcion');
     }
 }

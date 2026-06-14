@@ -24,7 +24,7 @@ class CalificacionController extends Controller
 
         $asignaciones = \App\Models\materi_grupo::where('codigoDoc', $docente->codigoDoc)
             ->with([
-                'grupo' => fn($q) => $q->with(['gestion', 'modalidad', 'turno']),
+                'grupo' => fn($q) => $q->with(['gestion', 'modalidad']),
                 'materia',
             ])
             ->get();

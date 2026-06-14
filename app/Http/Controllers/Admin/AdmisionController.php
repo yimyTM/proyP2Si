@@ -110,23 +110,11 @@ class AdmisionController extends Controller
      */
     private function calcularAsignaciones(Gestion $gestionModel): array
     {
-        // Cupos disponibles por carrera (map codCarrera => cupos)
-        $cuposBase = $gestionModel->gestionCarreras
+        // Cupos disponibles por carrera (map codCarrera => cupos) — siempre desde el total,
+        // el algoritmo recalcula desde cero y procesar() sobreescribe asignaciones previas.
+        $cuposRestantes = $gestionModel->gestionCarreras
             ->pluck('cupos', 'codCarrera')
             ->toArray();
-
-        // Cupos ya consumidos por asignaciones previas guardadas
-        $yaAsignados = Inscripcion::where('idGestion', $gestionModel->idGestion)
-            ->whereNotNull('codCarreraAsignada')
-            ->selectRaw('"codCarreraAsignada", COUNT(*) as total')
-            ->groupBy('codCarreraAsignada')
-            ->pluck('total', 'codCarreraAsignada')
-            ->toArray();
-
-        $cuposRestantes = [];
-        foreach ($cuposBase as $cod => $total) {
-            $cuposRestantes[$cod] = $total - ($yaAsignados[$cod] ?? 0);
-        }
 
         // Postulantes Aprobados ordenados por promedio DESC
         $inscripciones = Inscripcion::where('idGestion', $gestionModel->idGestion)

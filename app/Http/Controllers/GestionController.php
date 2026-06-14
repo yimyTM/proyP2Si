@@ -85,7 +85,9 @@ class GestionController extends Controller
 
         BitacoraService::registrar("Gestión #{$gestion->idGestion} reabierta.");
 
-        return back()->with('success', "Gestión #{$gestion->idGestion} reabierta correctamente.");
+        return redirect()
+            ->route('admin.gestiones.carreras.index', $gestion)
+            ->with('success', "Gestión #{$gestion->idGestion} reabierta. Revise los cupos y cree los grupos cuando esté listo.");
     }
 
     public function cerrar(Gestion $gestion): RedirectResponse

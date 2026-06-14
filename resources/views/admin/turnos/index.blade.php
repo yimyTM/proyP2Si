@@ -73,7 +73,7 @@
                         <div>
                             <p class="font-medium text-gray-800">{{ $turno->nombTurno }}</p>
                             <p class="text-xs text-gray-400">
-                                {{ $turno->grupos_count }} grupo{{ $turno->grupos_count !== 1 ? 's' : '' }} asignado{{ $turno->grupos_count !== 1 ? 's' : '' }}
+                                {{ $turno->horarios_count }} horario{{ $turno->horarios_count !== 1 ? 's' : '' }} asignado{{ $turno->horarios_count !== 1 ? 's' : '' }}
                             </p>
                         </div>
                     </div>
@@ -85,7 +85,7 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
                             </svg>
                         </button>
-                        @if($turno->grupos_count === 0)
+                        @if($turno->horarios_count === 0)
                         <form method="POST" action="{{ route('admin.turnos.destroy', $turno->idTurno) }}"
                               onsubmit="return confirm('¿Eliminar el turno «{{ $turno->nombTurno }}»?')">
                             @csrf @method('DELETE')

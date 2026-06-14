@@ -15,6 +15,7 @@ return new class extends Migration
             $table->id('idHorario');
             $table->time('hora_ini');
             $table->time('hora_fin');
+            $table->foreignId('idTurno')->constrained('turnos','idTurno')->onDelete('cascade');
             $table->string('dia', 20);
             $table->timestamps();
         });

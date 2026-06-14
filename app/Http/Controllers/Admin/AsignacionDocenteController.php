@@ -21,7 +21,7 @@ class AsignacionDocenteController extends Controller
     public function index(): View
     {
         $grupos   = Grupo::with([
-            'modalidad', 'turno',
+            'modalidad',
             'materiGrupos' => fn($q) => $q->with('materia', 'horario', 'aula', 'docente'),
         ])->get();
         $aulas    = Aula::orderBy('idAula')->get();

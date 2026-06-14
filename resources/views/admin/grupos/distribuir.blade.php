@@ -87,7 +87,7 @@
     <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
         <div class="px-5 py-4 border-b border-gray-100">
             <h3 class="font-semibold text-gray-800 text-sm">Vista previa de distribución</h3>
-            <p class="text-xs text-gray-400 mt-0.5">Distribución equitativa ordenada alfabéticamente por apellido</p>
+            <p class="text-xs text-gray-400 mt-0.5">Distribución secuencial ordenada alfabéticamente por apellido — se llena un grupo antes de pasar al siguiente</p>
         </div>
 
         {{-- Tabla resumen de grupos --}}

@@ -533,24 +533,32 @@ class poblacionCompleta extends Seeder
         //     Lunes 1-8 | Martes 9-16 | Miércoles 17-24
         //     Jueves 25-32 | Viernes 33-40
         // =========================================================
-        $diasHorarios = ['Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes'];
-        $slots = [
-            ['hora_ini' => '07:00:00', 'hora_fin' => '08:30:00'],
-            ['hora_ini' => '08:30:00', 'hora_fin' => '10:00:00'],
-            ['hora_ini' => '10:00:00', 'hora_fin' => '11:30:00'],
-            ['hora_ini' => '14:00:00', 'hora_fin' => '15:30:00'],
-            ['hora_ini' => '15:30:00', 'hora_fin' => '17:00:00'],
-            ['hora_ini' => '17:00:00', 'hora_fin' => '18:30:00'],
-            ['hora_ini' => '18:30:00', 'hora_fin' => '20:00:00'],
-            ['hora_ini' => '20:00:00', 'hora_fin' => '21:30:00'],
+$diasHorarios = ['Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes'];
+$slots = [
+    ['hora_ini' => '07:00:00', 'hora_fin' => '08:30:00', 'idTurno' => 1],
+    ['hora_ini' => '08:30:00', 'hora_fin' => '10:00:00', 'idTurno' => 1],
+    ['hora_ini' => '10:00:00', 'hora_fin' => '11:30:00', 'idTurno' => 1],
+    ['hora_ini' => '14:00:00', 'hora_fin' => '15:30:00', 'idTurno' => 2],
+    ['hora_ini' => '15:30:00', 'hora_fin' => '17:00:00', 'idTurno' => 2],
+    ['hora_ini' => '17:00:00', 'hora_fin' => '18:30:00', 'idTurno' => 3],
+    ['hora_ini' => '18:30:00', 'hora_fin' => '20:00:00', 'idTurno' => 3],
+    ['hora_ini' => '20:00:00', 'hora_fin' => '21:30:00', 'idTurno' => 3],
+];
+
+$horarios = [];
+foreach ($diasHorarios as $dia) {
+    foreach ($slots as $slot) {
+        $horarios[] = [
+            'hora_ini'   => $slot['hora_ini'], 
+            'hora_fin'   => $slot['hora_fin'], 
+            'dia'        => $dia, 
+            'idTurno'    => $slot['idTurno'], // <-- ¡Corregido aquí!
+            'created_at' => now(), 
+            'updated_at' => now()
         ];
-        $horarios = [];
-        foreach ($diasHorarios as $dia) {
-            foreach ($slots as $slot) {
-                $horarios[] = ['hora_ini' => $slot['hora_ini'], 'hora_fin' => $slot['hora_fin'], 'dia' => $dia, 'created_at' => now(), 'updated_at' => now()];
-            }
-        }
-        DB::table('horarios')->insert($horarios);
+    }
+}
+DB::table('horarios')->insert($horarios);
 
         // =========================================================
         // 15. MATERIAS (5 materias)
@@ -611,11 +619,11 @@ class poblacionCompleta extends Seeder
         //     codigoG 3-5: gestión 2 (Grupo A Mañana, B Tarde, C Noche)
         // =========================================================
         DB::table('grupos')->insert([
-            ['capacidad' => 70, 'numero_grupo' => 'A', 'codeModalidad' => 1, 'idTurno' => 1, 'idGestion' => 1, 'created_at' => now(), 'updated_at' => now()], // 1
-            ['capacidad' => 70, 'numero_grupo' => 'B', 'codeModalidad' => 1, 'idTurno' => 2, 'idGestion' => 1, 'created_at' => now(), 'updated_at' => now()], // 2
-            ['capacidad' => 70, 'numero_grupo' => 'A', 'codeModalidad' => 1, 'idTurno' => 1, 'idGestion' => 2, 'created_at' => now(), 'updated_at' => now()], // 3
-            ['capacidad' => 70, 'numero_grupo' => 'B', 'codeModalidad' => 1, 'idTurno' => 2, 'idGestion' => 2, 'created_at' => now(), 'updated_at' => now()], // 4
-            ['capacidad' => 70, 'numero_grupo' => 'C', 'codeModalidad' => 1, 'idTurno' => 3, 'idGestion' => 2, 'created_at' => now(), 'updated_at' => now()], // 5
+            ['capacidad' => 70, 'numero_grupo' => 'A', 'codeModalidad' => 1, 'idGestion' => 1, 'created_at' => now(), 'updated_at' => now()], // 1
+            ['capacidad' => 70, 'numero_grupo' => 'B', 'codeModalidad' => 1, 'idGestion' => 1, 'created_at' => now(), 'updated_at' => now()], // 2
+            ['capacidad' => 70, 'numero_grupo' => 'A', 'codeModalidad' => 1, 'idGestion' => 2, 'created_at' => now(), 'updated_at' => now()], // 3
+            ['capacidad' => 70, 'numero_grupo' => 'B', 'codeModalidad' => 1, 'idGestion' => 2, 'created_at' => now(), 'updated_at' => now()], // 4
+            ['capacidad' => 70, 'numero_grupo' => 'C', 'codeModalidad' => 1, 'idGestion' => 2, 'created_at' => now(), 'updated_at' => now()], // 5
         ]);
 
         // =========================================================

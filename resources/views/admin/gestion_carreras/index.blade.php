@@ -73,5 +73,57 @@
         </div>
     </form>
 
+    {{-- Panel: Crear grupos automáticamente ─────────────────────────────────── --}}
+    @if(session('ofrecer_apertura') && $gestion->estaAbierta())
+    <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-5">
+        <div class="flex items-start gap-3 mb-4">
+            <svg class="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <div>
+                <p class="font-semibold text-emerald-800">Cupos guardados — ¿Crear grupos ahora?</p>
+                <p class="text-sm text-emerald-700 mt-0.5">
+                    Los postulantes se mezclan entre carreras. El algoritmo creará grupos por modalidad
+                    usando la capacidad máxima de la gestión
+                    (<code class="bg-emerald-100 px-1 rounded">grupos = ⌈total_inscritos ÷ capacidad_máxima⌉</code>).
+                    Selecciona el turno y ejecuta.
+                </p>
+            </div>
+        </div>
+
+        <form method="POST" action="{{ route('admin.grupos.apertura.calcular') }}" class="flex flex-wrap items-end gap-3">
+            @csrf
+            <input type="hidden" name="idGestion" value="{{ $gestion->idGestion }}">
+
+            <div>
+                <label class="block text-xs font-medium text-emerald-800 mb-1">Cap. máx. por grupo</label>
+                <input type="number" name="capacidad_por_grupo" value="70" min="1" max="500"
+                       class="w-28 px-3 py-2 border border-emerald-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-emerald-400 bg-white">
+            </div>
+
+            <div>
+                <label class="block text-xs font-medium text-emerald-800 mb-1">Turno</label>
+                <select name="idTurno"
+                        class="px-3 py-2 border border-emerald-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-emerald-400 bg-white">
+                    <option value="">Seleccione...</option>
+                    @foreach(\App\Models\Turno::all() as $t)
+                        <option value="{{ $t->idTurno }}">{{ $t->nombTurno }}</option>
+                    @endforeach
+                </select>
+            </div>
+
+            <button type="submit"
+                    class="px-5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold transition">
+                Crear grupos
+            </button>
+
+            <a href="{{ route('admin.grupos.apertura', ['gestion' => $gestion->idGestion]) }}"
+               class="px-5 py-2 rounded-lg bg-white border border-emerald-300 hover:bg-emerald-50 text-emerald-700 text-sm font-medium transition">
+                Ver preview completo
+            </a>
+        </form>
+    </div>
+    @endif
+
 </div>
 @endsection

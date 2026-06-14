@@ -12,7 +12,7 @@ class TurnoController extends Controller
 {
     public function index(): View
     {
-        $turnos = Turno::withCount('grupos')->orderBy('nombTurno')->get();
+        $turnos = Turno::withCount('horarios')->orderBy('nombTurno')->get();
         return view('admin.turnos.index', compact('turnos'));
     }
 
@@ -54,9 +54,9 @@ class TurnoController extends Controller
 
     public function destroy(Turno $turno): RedirectResponse
     {
-        if ($turno->grupos()->exists()) {
+        if ($turno->horarios()->exists()) {
             return back()->with('error',
-                "No se puede eliminar «{$turno->nombTurno}» porque tiene {$turno->grupos_count} grupo(s) asignado(s)."
+                "No se puede eliminar «{$turno->nombTurno}» porque tiene horarios asignados."
             );
         }
 
