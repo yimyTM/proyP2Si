@@ -261,7 +261,7 @@ class ReporteController extends Controller
     private function repGruposHabilitados(Gestion $g): array
     {
         $grupos = Grupo::where('idGestion', $g->idGestion)
-            ->with(['modalidad', 'turno'])
+            ->with(['modalidad'])
             ->orderBy('numero_grupo')
             ->get();
 

@@ -158,6 +158,9 @@ Route::middleware(['auth', 'role:Administrador,Autoridades,Coordinador'])
         Route::post('/grupos/{grupo}/materias',             [MateriGrupoController::class, 'store'])->name('grupos.materias.store');
         Route::delete('/grupos/{grupo}/materias/{materia}', [MateriGrupoController::class, 'destroy'])->name('grupos.materias.destroy');
 
+        // Mover alumno individual entre grupos
+        Route::post('/grupos/{grupo}/alumnos/{inscripcion}/mover', [GrupoController::class, 'moverAlumno'])->name('grupos.alumnos.mover');
+
         // Asignación docente (vista global admin)
         Route::get('/asignacion-docente',  [AsignacionDocenteController::class, 'index'])->name('asignacion-docente');
         Route::post('/asignacion-docente', [AsignacionDocenteController::class, 'store'])->name('asignacion-docente.store');

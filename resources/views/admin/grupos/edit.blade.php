@@ -210,6 +210,94 @@
         </div>
     </div>
 
+    {{-- ── Alumnos del grupo ──────────────────────────────────────────────── --}}
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-7">
+        <div class="flex items-center gap-3 mb-5 pb-4 border-b">
+            <div class="w-10 h-10 rounded-xl flex items-center justify-center bg-blue-50 border border-blue-200">
+                <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+                </svg>
+            </div>
+            <div>
+                <h3 class="font-bold text-gray-900">Alumnos del grupo</h3>
+                <p class="text-xs text-gray-400 mt-0.5">
+                    {{ $grupo->inscripciones->count() }} / {{ $grupo->capacidad }} ocupados — puedes mover alumnos a otro grupo
+                </p>
+            </div>
+        </div>
+
+        @if($grupo->inscripciones->isEmpty())
+            <p class="text-sm text-gray-400 text-center py-6">No hay alumnos asignados a este grupo.</p>
+        @else
+            @if($otrosGrupos->isEmpty())
+                <div class="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-700 text-sm">
+                    No hay otros grupos en esta gestión. Crea otro grupo para poder mover alumnos.
+                </div>
+            @endif
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead class="bg-gray-50">
+                        <tr class="text-left text-xs text-gray-500 uppercase tracking-wider">
+                            <th class="px-4 py-2.5">#</th>
+                            <th class="px-4 py-2.5">Alumno</th>
+                            <th class="px-4 py-2.5">CI</th>
+                            <th class="px-4 py-2.5">Estado</th>
+                            @if($otrosGrupos->isNotEmpty())
+                                <th class="px-4 py-2.5">Mover a grupo</th>
+                            @endif
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                        @foreach($grupo->inscripciones->sortBy('postulante.apellidos') as $i => $insc)
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-4 py-2.5 text-gray-400 text-xs">{{ $i + 1 }}</td>
+                            <td class="px-4 py-2.5 font-medium text-gray-800">
+                                {{ trim(($insc->postulante->apellidos ?? '') . ' ' . ($insc->postulante->nombre ?? '')) ?: '—' }}
+                            </td>
+                            <td class="px-4 py-2.5 text-gray-500 text-xs">{{ $insc->postulante->ci ?? '—' }}</td>
+                            <td class="px-4 py-2.5">
+                                @php
+                                    $badgeClass = match($insc->estado) {
+                                        'Asignado a grupo' => 'bg-blue-100 text-blue-700',
+                                        'Habilitado'       => 'bg-green-100 text-green-700',
+                                        'Validado'         => 'bg-gray-100 text-gray-600',
+                                        default            => 'bg-gray-100 text-gray-500',
+                                    };
+                                @endphp
+                                <span class="text-xs px-2 py-0.5 rounded-full {{ $badgeClass }}">{{ $insc->estado }}</span>
+                            </td>
+                            @if($otrosGrupos->isNotEmpty())
+                            <td class="px-4 py-2.5">
+                                <form method="POST"
+                                      action="{{ route('admin.grupos.alumnos.mover', [$grupo->codigoG, $insc->idInscripcion]) }}"
+                                      class="flex items-center gap-2">
+                                    @csrf
+                                    <select name="codigoG_destino"
+                                            class="text-xs border border-gray-300 rounded-lg px-2 py-1.5 outline-none focus:ring-2 focus:ring-[#283342]/20">
+                                        @foreach($otrosGrupos as $og)
+                                            <option value="{{ $og->codigoG }}">
+                                                Grupo {{ $og->numero_grupo }}
+                                                ({{ $og->inscritos_count }}/{{ $og->capacidad }})
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                    <button type="submit"
+                                            class="px-3 py-1.5 rounded-lg text-xs font-semibold text-white transition hover:opacity-90"
+                                            style="background-color: #283342;">
+                                        Mover
+                                    </button>
+                                </form>
+                            </td>
+                            @endif
+                        </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        @endif
+    </div>
+
     <div class="text-right">
         <a href="{{ route('admin.grupos.index') }}"
            class="px-5 py-2.5 rounded-xl border border-gray-200 text-gray-600 text-sm hover:bg-gray-50 transition">

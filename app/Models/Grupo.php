@@ -12,7 +12,7 @@ class Grupo extends Model
     protected $table      = 'grupos';
     protected $primaryKey = 'codigoG';
 
-    protected $fillable = ['capacidad', 'numero_grupo', 'codeModalidad', 'idTurno', 'idGestion'];
+    protected $fillable = ['capacidad', 'numero_grupo', 'codeModalidad', 'idGestion'];
 
     public function gestion(): BelongsTo
     {
@@ -22,11 +22,6 @@ class Grupo extends Model
     public function modalidad(): BelongsTo
     {
         return $this->belongsTo(Modalidad::class, 'codeModalidad', 'codeModalidad');
-    }
-
-    public function turno(): BelongsTo
-    {
-        return $this->belongsTo(Turno::class, 'idTurno', 'idTurno');
     }
 
     public function horarios(): BelongsToMany

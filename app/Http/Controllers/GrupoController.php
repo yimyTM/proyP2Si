@@ -84,7 +84,13 @@ class GrupoController extends Controller
 
     public function edit(Grupo $grupo): View
     {
-        $grupo->load(['materiGrupos.materia', 'materiGrupos.horario', 'materiGrupos.aula', 'materiGrupos.docente']);
+        $grupo->load([
+            'materiGrupos.materia',
+            'materiGrupos.horario',
+            'materiGrupos.aula',
+            'materiGrupos.docente',
+            'inscripciones.postulante',
+        ]);
 
         $totalRequisitosD = requisito::where('tipo', 'D')->where('obligatorio', true)->count();
 
@@ -95,9 +101,20 @@ class GrupoController extends Controller
             }, '>=', $totalRequisitosD)->orderBy('apellido')->get()
             : Docente::orderBy('apellido')->get();
 
+        $otrosGrupos = Grupo::where('idGestion', $grupo->idGestion)
+            ->where('codigoG', '!=', $grupo->codigoG)
+            ->with('modalidad')
+            ->orderBy('numero_grupo')
+            ->get()
+            ->map(function ($g) {
+                $g->inscritos_count = $g->inscripciones()->count();
+                return $g;
+            });
+
         return view('admin.grupos.edit', array_merge($this->formData(), [
             'grupo'               => $grupo,
             'docentesHabilitados' => $docentesHabilitados,
+            'otrosGrupos'         => $otrosGrupos,
         ]));
     }
 
@@ -154,7 +171,7 @@ class GrupoController extends Controller
         }
 
         $grupos = Grupo::where('idGestion', $gestion->idGestion)
-            ->with(['modalidad', 'turno'])
+            ->with(['modalidad'])
             ->orderBy('numero_grupo')
             ->get();
 
@@ -278,6 +295,42 @@ class GrupoController extends Controller
     {
         return redirect()->route('admin.grupos.index')
             ->with('error', 'La apertura automática fue reemplazada por el CRUD manual de grupos.');
+    }
+
+    // ── Mover alumno individual entre grupos ──────────────────────────────────
+
+    public function moverAlumno(Request $request, Grupo $grupo, \App\Models\Inscripcion $inscripcion): RedirectResponse
+    {
+        $data = $request->validate([
+            'codigoG_destino' => ['required', 'integer', 'exists:grupos,codigoG'],
+        ]);
+
+        $destino = Grupo::findOrFail($data['codigoG_destino']);
+
+        if ((int) $inscripcion->codigoG !== $grupo->codigoG) {
+            return back()->with('error', 'El alumno no pertenece a este grupo.');
+        }
+
+        if ($destino->idGestion !== $grupo->idGestion) {
+            return back()->with('error', 'El grupo destino no pertenece a la misma gestión.');
+        }
+
+        $ocupacion = $destino->inscripciones()->count();
+        if ($ocupacion >= $destino->capacidad) {
+            return back()->with('error', "El grupo «{$destino->numero_grupo}» está lleno ({$ocupacion}/{$destino->capacidad}).");
+        }
+
+        $nombreAlumno = $inscripcion->postulante
+            ? trim($inscripcion->postulante->apellidos . ' ' . $inscripcion->postulante->nombre)
+            : "Inscripción #{$inscripcion->idInscripcion}";
+
+        $inscripcion->update(['codigoG' => $destino->codigoG]);
+
+        BitacoraService::registrar(
+            "Alumno {$nombreAlumno} movido del grupo «{$grupo->numero_grupo}» al grupo «{$destino->numero_grupo}»."
+        );
+
+        return back()->with('success', "«{$nombreAlumno}» movido al grupo «{$destino->numero_grupo}».");
     }
 
     // ── Helper ────────────────────────────────────────────────────────────────
